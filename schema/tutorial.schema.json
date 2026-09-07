@@ -1,0 +1,113 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Tutoriais Interativos de Microsserviços - Definição de Tutorial",
+  "description": "Schema do arquivo de configuração (index.json) de um tutorial interativo da plataforma",
+  "type": "object",
+  "required": ["title", "description", "details", "backend"],
+  "additionalProperties": false,
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "The display title of the scenario"
+    },
+    "description": {
+      "type": "string",
+      "description": "A short summary of what the scenario covers"
+    },
+    "details": {
+      "type": "object",
+      "description": "Contains the scenario's intro, steps, and finish content",
+      "required": ["intro", "steps", "finish"],
+      "additionalProperties": false,
+      "properties": {
+        "intro": {
+          "$ref": "#/definitions/textBlock"
+        },
+        "steps": {
+          "type": "array",
+          "description": "Ordered list of steps the user completes",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/step"
+          }
+        },
+        "finish": {
+          "$ref": "#/definitions/textBlock"
+        }
+      }
+    },
+    "backend": {
+      "type": "object",
+      "description": "Backend environment configuration",
+      "required": ["imageid"],
+      "additionalProperties": false,
+      "properties": {
+        "imageid": {
+          "type": "string",
+          "description": "Identifier of the backend image/environment to provision (e.g. a Kubernetes cluster setup)"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "textBlock": {
+      "type": "object",
+      "required": ["text"],
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "Path to a markdown file containing the content to display"
+        },
+        "background": {
+          "type": "string",
+          "description": "Path to a shell script executed in the background when this block is shown (e.g. environment setup)"
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "required": ["title", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The step's title"
+        },
+        "text": {
+          "type": "string",
+          "description": "Path to a markdown file with the step's instructions"
+        },
+        "verify": {
+          "type": "string",
+          "description": "Path to a shell script that automatically verifies the user's completion of this step"
+        },
+        "file": {
+          "$ref": "#/definitions/fileTarget"
+        },
+        "points": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Score/points awarded to the user upon successful completion of this step"
+        }
+      }
+    },
+    "fileTarget": {
+      "type": "object",
+      "description": "Points the step to a specific file (and optionally a line within it) that should be opened/displayed alongside the step's instructions",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Path or name of the file to display for this step"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Line number within the file to focus/scroll to (optional)"
+        }
+      }
+    }
+  }
+}
