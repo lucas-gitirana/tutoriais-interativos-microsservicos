@@ -23,6 +23,9 @@ const options = {
   platform: 'node',
   format: 'cjs',
   target: 'node18',
+  // Preferir a build ESM das dependencias (ex.: jsonc-parser): a UMD deixa
+  // requires dinamicos ("./impl/format") que o esbuild nao consegue embutir.
+  mainFields: ['module', 'main'],
   external: ['vscode'],
   sourcemap: !production,
   minify: production,
