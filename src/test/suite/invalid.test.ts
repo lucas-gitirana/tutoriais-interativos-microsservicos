@@ -13,12 +13,15 @@ describeScenario('invalid', 'workspace com index.json invalido (T7.3)', () => {
     const warn = stubShowWarningMessage();
     try {
       const api = await activateExtension();
+      // A extensao pode ter ativado (e notificado) antes do stub; forca nova notificacao.
+      api.resetNotifier();
       await api.reload();
 
       const result = api.getLastResult();
       assert.strictEqual(result.status, 'invalid', JSON.stringify(result));
 
       // showWarningMessage foi chamado.
+      await waitFor(() => warn.calls.some((m) => m.includes('index.json invalido')));
       assert.ok(
         warn.calls.some((m) => m.includes('index.json invalido')),
         `chamadas: ${JSON.stringify(warn.calls)}`

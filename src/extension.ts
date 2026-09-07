@@ -12,6 +12,8 @@ import { TutorialTreeViewProvider } from './view/TutorialTreeViewProvider';
 export interface TutorialExtensionApi {
   reload(): Promise<LoadResult>;
   getLastResult(): LoadResult;
+  /** Zera o anti-spam do notificador (a extensao pode ter ativado antes do teste). */
+  resetNotifier(): void;
   /** Provider da TreeView, para inspecao nos testes. */
   readonly treeProvider: TutorialTreeViewProvider;
 }
@@ -59,6 +61,12 @@ export async function activate(
     await notifier.notify(result);
   };
 
+  const reloadAndApply = async (): Promise<LoadResult> => {
+    const result = await watcher.reloadNow();
+    await applyResult(result);
+    return result;
+  };
+
   context.subscriptions.push(
     treeView,
     diagnostics,
@@ -69,16 +77,17 @@ export async function activate(
     }),
     registerCommands({
       revalidate: async () => {
-        await watcher.reloadNow();
+        await reloadAndApply();
       }
     })
   );
 
-  await watcher.reloadNow();
+  await reloadAndApply();
 
   return {
-    reload: () => watcher.reloadNow(),
+    reload: reloadAndApply,
     getLastResult: () => lastResult,
+    resetNotifier: () => notifier.reset(),
     treeProvider
   };
 }

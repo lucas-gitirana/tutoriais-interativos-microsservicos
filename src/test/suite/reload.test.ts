@@ -13,6 +13,7 @@ describeScenario('reload', 'revalidacao ao vivo invalido -> valido (T7.4)', () =
     const warn = stubShowWarningMessage();
     try {
       const api = await activateExtension();
+      api.resetNotifier();
       await api.reload();
       assert.strictEqual(api.getLastResult().status, 'invalid');
 

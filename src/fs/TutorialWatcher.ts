@@ -9,10 +9,14 @@ const DEBOUNCE_MS = 200;
  * do tutorial. Qualquer criacao / alteracao / remocao dispara uma nova carga
  * (com debounce) e emite {@link TutorialWatcher.onDidReload} com o
  * {@link LoadResult} resultante — permitindo iterar sem recarregar a janela.
+ *
+ * `onDidReload` e emitido apenas para recargas disparadas pelo *watcher*. A carga
+ * inicial e as manuais ({@link TutorialWatcher.reloadNow}) devolvem o resultado
+ * diretamente, para que o chamador aplique os efeitos de forma sincrona.
  */
 export class TutorialWatcher implements vscode.Disposable {
   private readonly emitter = new vscode.EventEmitter<LoadResult>();
-  /** Emitido apos cada recarga (inicial, manual ou por watcher). */
+  /** Emitido apos recargas disparadas por alteracoes de arquivo. */
   readonly onDidReload = this.emitter.event;
 
   private readonly indexWatcher: vscode.FileSystemWatcher;
@@ -27,13 +31,10 @@ export class TutorialWatcher implements vscode.Disposable {
     this.indexWatcher.onDidDelete(() => this.schedule());
   }
 
-  /** Recarrega imediatamente, re-configura o watcher de conteudo e emite o evento. */
+  /** Recarrega imediatamente e re-configura o watcher de conteudo (sem emitir evento). */
   async reloadNow(): Promise<LoadResult> {
     const result = await this.loader.loadFromWorkspace();
     this.rewireReferenceWatcher(result);
-    if (!this.disposed) {
-      this.emitter.fire(result);
-    }
     return result;
   }
 
@@ -43,7 +44,11 @@ export class TutorialWatcher implements vscode.Disposable {
     }
     this.debounce = setTimeout(() => {
       this.debounce = undefined;
-      void this.reloadNow();
+      void this.reloadNow().then((result) => {
+        if (!this.disposed) {
+          this.emitter.fire(result);
+        }
+      });
     }, DEBOUNCE_MS);
   }
 
