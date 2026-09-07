@@ -106,6 +106,7 @@
     "pretest": "npm run compile-tests && npm run build && npm run lint",
     "test": "npm run compile-tests && mocha \"out/test/unit/**/*.test.js\"",
     "test:coverage": "npm run compile-tests && c8 --reporter=text --reporter=lcov --src out/loading --src out/fs mocha \"out/test/unit/**/*.test.js\"",
+    "pretest:integration": "npm run compile-tests && npm run build",
     "test:integration": "node ./out/test/runTest.js",
     "test:all": "npm run test && npm run test:integration",
     "package": "vsce package"
