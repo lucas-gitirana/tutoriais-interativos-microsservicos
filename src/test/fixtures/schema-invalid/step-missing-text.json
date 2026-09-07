@@ -1,0 +1,20 @@
+{
+  "title": "Tutorial de teste",
+  "description": "Fixture para o validador de schema.",
+  "details": {
+    "intro": {
+      "text": "intro.md"
+    },
+    "steps": [
+      {
+        "title": "Etapa 1"
+      }
+    ],
+    "finish": {
+      "text": "finish.md"
+    }
+  },
+  "backend": {
+    "imageid": "img:1"
+  }
+}

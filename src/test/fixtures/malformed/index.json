@@ -1,0 +1,10 @@
+{
+  "title": "Malformado",
+  "description": "Falta a vírgula depois deste valor"
+  "details": {
+    "intro": { "text": "intro.md" },
+    "steps": [ { "title": "E1", "text": "s1.md" } ],
+    "finish": { "text": "finish.md" }
+  },
+  "backend": { "imageid": "img:1" }
+}

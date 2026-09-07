@@ -1,0 +1,7 @@
+{
+  "title": "Tutorial de teste",
+  "description": "Fixture para o validador de schema.",
+  "backend": {
+    "imageid": "img:1"
+  }
+}

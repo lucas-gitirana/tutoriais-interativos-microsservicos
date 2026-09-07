@@ -1,0 +1,34 @@
+{
+  "title": "Implementando o padrão CQRS",
+  "description": "Separe os modelos de leitura e escrita de um microsserviço aplicando Command Query Responsibility Segregation.",
+  "details": {
+    "intro": {
+      "text": "intro.md",
+      "background": "setup.sh"
+    },
+    "steps": [
+      {
+        "title": "Separar comandos de consultas",
+        "text": "step-01.md",
+        "verify": "verify-step-01.sh",
+        "file": {
+          "name": "src/order-service/app.py",
+          "line": 12
+        },
+        "points": 10
+      },
+      {
+        "title": "Criar o modelo de leitura",
+        "text": "step-02.md",
+        "verify": "verify-step-02.sh",
+        "points": 15
+      }
+    ],
+    "finish": {
+      "text": "finish.md"
+    }
+  },
+  "backend": {
+    "imageid": "microsservicos/cqrs-lab:1.0"
+  }
+}

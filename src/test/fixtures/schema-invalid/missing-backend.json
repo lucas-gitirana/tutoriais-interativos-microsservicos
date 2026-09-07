@@ -1,0 +1,18 @@
+{
+  "title": "Tutorial de teste",
+  "description": "Fixture para o validador de schema.",
+  "details": {
+    "intro": {
+      "text": "intro.md"
+    },
+    "steps": [
+      {
+        "title": "Etapa 1",
+        "text": "step-01.md"
+      }
+    ],
+    "finish": {
+      "text": "finish.md"
+    }
+  }
+}

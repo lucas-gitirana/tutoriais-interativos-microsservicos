@@ -1,0 +1,16 @@
+{
+  "title": "Fixture posicional",
+  "description": "Usado para conferir o mapeamento caminho -> linha/coluna.",
+  "details": {
+    "intro": { "text": "intro.md" },
+    "steps": [
+      {
+        "title": "Etapa 1",
+        "text": "step-01.md",
+        "points": "dez"
+      }
+    ],
+    "finish": { "text": "finish.md" }
+  },
+  "backend": { "imageid": "img:1" }
+}
