@@ -147,12 +147,32 @@ npm install
 npm run build            # bundle esbuild -> dist/extension.js
 npm run lint
 npm test                 # testes unitários (Ajv, parser posicional, referências)
-npm run test:integration # testes de integração (@vscode/test-electron; requer display/xvfb)
+npm run test:integration # testes de integração (@vscode/test-electron)
 npm run package          # gera o .vsix
 ```
 
 Pressione **F5** no VS Code para abrir o _Extension Development Host_ já com o
 tutorial de exemplo carregado.
+
+### Rodando os testes de integração
+
+`@vscode/test-electron` baixa um VS Code real e o executa. Em Linux isso exige
+algumas bibliotecas de sistema e um servidor gráfico. Numa máquina headless
+(inclusive WSL) instale, **uma vez**:
+
+```bash
+sudo apt-get update && sudo apt-get install -y \
+  xvfb libnss3 libnspr4 libasound2t64 libgbm1 libdrm2 libxkbcommon0 \
+  libgtk-3-0t64 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 \
+  libatspi2.0-0t64 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+  libxshmfence1 libpango-1.0-0 libcairo2 libx11-xcb1
+```
+
+Depois basta `npm run test:integration` — se não houver `DISPLAY`, o runner se
+reexecuta automaticamente sob `xvfb-run`. (Os nomes de pacote acima são de
+Ubuntu 24.04 "noble"; em versões anteriores use `libasound2`, `libgtk-3-0`,
+`libatk1.0-0`, `libatk-bridge2.0-0`, `libcups2`, `libatspi2.0-0` sem o sufixo
+`t64`.) No CI isso já é feito pelo workflow.
 
 ### Arquitetura (alinhada ao Diagrama de Classes do TCC)
 
