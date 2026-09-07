@@ -15,7 +15,12 @@ export class TutorialNotifier {
   private lastSignature: string | undefined;
   private lastStatus: LoadResult['status'] | undefined;
 
-  async notify(result: LoadResult): Promise<void> {
+  /**
+   * Dispara o feedback ao usuario. **Nao bloqueia**: a notificacao (e a acao
+   * "Ver detalhes") e tratada de forma assincrona, sem esperar a interacao —
+   * a pipeline de carga nao pode ficar presa a um aviso.
+   */
+  notify(result: LoadResult): void {
     const signature = signatureOf(result);
     const previousStatus = this.lastStatus;
     const repeated = signature === this.lastSignature;
@@ -28,14 +33,15 @@ export class TutorialNotifier {
       }
       const first = result.errors[0];
       const resumo = first ? first.message : 'formato invalido.';
-      const escolha = await vscode.window.showWarningMessage(
-        `index.json invalido: ${resumo}`,
-        'Ver detalhes'
-      );
-      if (escolha === 'Ver detalhes') {
-        await vscode.window.showTextDocument(result.indexUri);
-        await vscode.commands.executeCommand('workbench.actions.view.problems');
-      }
+      const indexUri = result.indexUri;
+      void Promise.resolve(
+        vscode.window.showWarningMessage(`index.json invalido: ${resumo}`, 'Ver detalhes')
+      ).then((escolha) => {
+        if (escolha === 'Ver detalhes') {
+          void vscode.window.showTextDocument(indexUri);
+          void vscode.commands.executeCommand('workbench.actions.view.problems');
+        }
+      });
       return;
     }
 

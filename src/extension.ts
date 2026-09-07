@@ -58,7 +58,7 @@ export async function activate(
         ? `${result.tutorial.details.steps.length} etapa(s)`
         : undefined;
 
-    await notifier.notify(result);
+    notifier.notify(result);
   };
 
   const reloadAndApply = async (): Promise<LoadResult> => {
