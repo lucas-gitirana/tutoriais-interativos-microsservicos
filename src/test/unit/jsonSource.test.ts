@@ -34,6 +34,25 @@ describe('JsonSource', () => {
     assert.ok(parseErrors[0].range, 'erro de parse deve ter posicao');
   });
 
+  it('vírgula faltando entre propriedades -> mensagem fala em vírgula, nao em colchete', () => {
+    const text = [
+      '{',
+      '  "title": "t",',
+      '  "file": {',
+      '    "name": "a.py"',
+      '    "line": 12',
+      '  }',
+      '}'
+    ].join('\n');
+    const { parseErrors } = JsonSource.parse(text);
+
+    assert.strictEqual(parseErrors.length, 1);
+    assert.match(parseErrors[0].message, /v[ií]rgula/i);
+    assert.doesNotMatch(parseErrors[0].message, /colchete/i);
+    // Aponta para o token onde a vírgula deveria estar (linha de "line").
+    assert.strictEqual(parseErrors[0].range?.line, 4);
+  });
+
   it('trata o caminho raiz', () => {
     const { source } = JsonSource.parse('{\n  "a": 1\n}\n');
     const range = source.rangeForPath('/');

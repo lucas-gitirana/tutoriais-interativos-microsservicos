@@ -2,6 +2,7 @@ import {
   parse as jsoncParse,
   parseTree,
   findNodeAtLocation,
+  printParseErrorCode,
   ParseError,
   Node as JsoncNode
 } from 'jsonc-parser';
@@ -162,24 +163,31 @@ function findClosestExistingNode(
   return root;
 }
 
+/**
+ * Traducao PT-BR das mensagens de erro de parse do jsonc-parser.
+ *
+ * Indexado pelo *nome* estavel do codigo (`printParseErrorCode`), nao pelo valor
+ * numerico do enum `ParseErrorCode` — que pode variar entre versoes.
+ */
+const PARSE_ERROR_PT: Record<string, string> = {
+  InvalidSymbol: 'simbolo invalido',
+  InvalidNumberFormat: 'numero em formato invalido',
+  PropertyNameExpected: 'nome de propriedade esperado',
+  ValueExpected: 'valor esperado',
+  ColonExpected: 'dois-pontos (`:`) esperado',
+  CommaExpected: 'virgula (`,`) esperada — as propriedades precisam ser separadas por virgula',
+  CloseBraceExpected: 'chave de fechamento (`}`) esperada',
+  CloseBracketExpected: 'colchete de fechamento (`]`) esperado',
+  EndOfFileExpected: 'fim de arquivo esperado',
+  InvalidCommentToken: 'comentario nao e permitido em JSON',
+  UnexpectedEndOfComment: 'comentario nao finalizado',
+  UnexpectedEndOfString: 'texto nao finalizado (aspas de fechamento faltando)',
+  UnexpectedEndOfNumber: 'numero nao finalizado',
+  InvalidUnicode: 'sequencia unicode invalida',
+  InvalidEscapeCharacter: 'caractere de escape invalido',
+  InvalidCharacter: 'caractere invalido'
+};
+
 function describeParseError(err: ParseError): string {
-  const map: Record<number, string> = {
-    1: 'simbolo inesperado',
-    2: 'nome de propriedade esperado',
-    3: 'dois-pontos esperado',
-    4: 'virgula esperada',
-    5: 'chave de fechamento `}` esperada',
-    6: 'colchete de fechamento `]` esperado',
-    7: 'fim de arquivo esperado',
-    8: 'comentario nao permitido',
-    9: 'virgula ou `}` esperada',
-    10: 'virgula ou `]` esperada',
-    11: 'aspas de fechamento esperadas',
-    12: 'literal invalido',
-    13: 'caractere invalido',
-    14: 'caractere de escape invalido',
-    15: 'sequencia unicode invalida',
-    16: 'numero invalido'
-  };
-  return map[err.error] ?? 'erro de sintaxe';
+  return PARSE_ERROR_PT[printParseErrorCode(err.error)] ?? 'erro de sintaxe';
 }
