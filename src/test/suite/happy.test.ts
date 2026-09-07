@@ -22,6 +22,18 @@ describeScenario('happy', 'workspace com index.json valido (T7.2)', () => {
         steps.map((s) => (s.kind === 'step' ? s.label : s.kind)),
         result.tutorial.details.steps.map((s) => s.title)
       );
+
+      // US02: cada etapa expoe a avaliacao automatica vinculada e a pontuacao.
+      assert.deepStrictEqual(
+        steps.map((s) => (s.kind === 'step' ? s.hasVerify : null)),
+        result.tutorial.details.steps.map((s) => typeof s.verify === 'string')
+      );
+      assert.deepStrictEqual(
+        steps.map((s) => (s.kind === 'step' ? s.points : null)),
+        result.tutorial.details.steps.map((s) =>
+          typeof s.points === 'number' ? s.points : undefined
+        )
+      );
     }
 
     // Comando de execucao registrado (habilitado via context key tutoriais.disponivel).

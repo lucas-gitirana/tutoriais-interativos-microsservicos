@@ -1,0 +1,17 @@
+{
+  "title": "Avaliação com script fora do padrão",
+  "description": "O script de verificação da etapa não é um arquivo .sh.",
+  "details": {
+    "intro": { "text": "intro.md" },
+    "steps": [
+      {
+        "title": "Etapa 1",
+        "text": "step-01.md",
+        "verify": "verify-step-01.py",
+        "points": 10
+      }
+    ],
+    "finish": { "text": "finish.md" }
+  },
+  "backend": { "imageid": "exemplo/ambiente:latest" }
+}

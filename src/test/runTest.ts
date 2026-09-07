@@ -12,7 +12,9 @@ interface Scenario {
 const SCENARIOS: Scenario[] = [
   { name: 'happy', fixture: 'valid-tutorial' },
   { name: 'invalid', fixture: 'invalid-missing-markdown' },
-  { name: 'reload', fixture: 'invalid-missing-markdown' }
+  { name: 'reload', fixture: 'invalid-missing-markdown' },
+  { name: 'eval-invalid', fixture: 'invalid-verify-not-sh' },
+  { name: 'eval-warn', fixture: 'warn-verify-without-points' }
 ];
 
 /** `true` se `cmd` existe no PATH. */

@@ -92,6 +92,34 @@ export class JsonSource {
     return this.rangeForOffset(node.offset, node.length);
   }
 
+  /**
+   * Ponteiros das etapas (`/details/steps/i/<prop>`) que declaram a propriedade
+   * `prop` mais de uma vez. JSON aceita chaves repetidas e o parser fica com a
+   * ultima; usado para o criterio "uma etapa, um script de avaliacao" (UC02 CA-2).
+   */
+  duplicateStepPropertyPointers(prop: string): string[] {
+    if (!this.tree) {
+      return [];
+    }
+    const stepsNode = findNodeAtLocation(this.tree, ['details', 'steps']);
+    if (!stepsNode || stepsNode.type !== 'array' || !stepsNode.children) {
+      return [];
+    }
+    const pointers: string[] = [];
+    stepsNode.children.forEach((stepNode, i) => {
+      if (stepNode.type !== 'object' || !stepNode.children) {
+        return;
+      }
+      const ocorrencias = stepNode.children.filter(
+        (child) => child.type === 'property' && child.children?.[0]?.value === prop
+      ).length;
+      if (ocorrencias > 1) {
+        pointers.push(`/details/steps/${i}/${prop}`);
+      }
+    });
+    return pointers;
+  }
+
   private rangeForOffset(offset: number, length: number): ValidationRange {
     const start = this.positionAt(offset);
     const end = this.positionAt(offset + length);

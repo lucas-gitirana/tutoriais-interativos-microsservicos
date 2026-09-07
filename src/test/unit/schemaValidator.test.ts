@@ -67,6 +67,18 @@ describe('TutorialSchemaValidator', () => {
       count: 1,
       path: '/details/steps/0/text',
       message: /obrigat/i
+    },
+    {
+      file: 'schema-invalid/verify-as-array.json',
+      count: 1,
+      path: '/details/steps/0/verify',
+      message: /tipo invalido/i
+    },
+    {
+      file: 'schema-invalid/verify-as-number.json',
+      count: 1,
+      path: '/details/steps/0/verify',
+      message: /tipo invalido/i
     }
   ];
 

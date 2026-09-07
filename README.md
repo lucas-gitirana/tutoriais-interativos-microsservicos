@@ -5,11 +5,13 @@ interativos definidos em um arquivo `index.json`, para a plataforma de tutoriais
 sobre padrões de microsserviços e observabilidade (TCC de Engenharia de Software —
 UDESC).
 
-Esta é a entrega da **US01 – Criar tutorial com base em arquivo JSON** (UC01).
-Ela cobre a etapa de **autoria/validação**: ao abrir um repositório com um
-`index.json` válido, o tutorial aparece numa aba própria na Activity Bar com o
-título e a lista ordenada de etapas. Se o arquivo estiver incorreto, a extensão
-mostra um aviso e aponta o erro no painel _Problems_.
+Reúne as entregas da **US01 – Criar tutorial com base em arquivo JSON** (UC01) e
+da **US02 – Criar avaliações automáticas** (UC02). Cobre a etapa de
+**autoria/validação**: ao abrir um repositório com um `index.json` válido, o
+tutorial aparece numa aba própria na Activity Bar com o título, a lista ordenada
+de etapas e, em cada etapa, a indicação da avaliação automática vinculada e da
+pontuação. Se o arquivo ou algum script de verificação estiver incorreto, a
+extensão mostra um aviso e aponta o erro no painel _Problems_.
 
 ## O que já funciona (US01)
 
@@ -22,14 +24,24 @@ mostra um aviso e aponta o erro no painel _Problems_.
 | CA-5 | `index.json` inválido ⇒ aviso + diagnósticos com linha/coluna no `index.json`. |
 | — | Revalidação ao vivo: alterações no `index.json` ou nos arquivos `.md`/`.sh` recarregam a listagem sem recarregar a janela. |
 
+## O que já funciona (US02)
+
+| Critério de aceitação | Comportamento |
+| --- | --- |
+| CA-1 | O script de avaliação (`verify`) de cada etapa é validado: extensão `.sh`, shebang bash/sh e sintaxe (`bash -n`, sem executar o script). Violações bloqueiam a disponibilização. |
+| CA-2 | Cada etapa admite **um** `verify` — garantido pelo schema (string única) e reforçado pela detecção de `verify` duplicado. |
+| RF10 | A avaliação vinculada aparece no rótulo da etapa na TreeView. |
+| RF14 | `points` é validado (inteiro ≥ 0) e a extensão avisa quando `verify` e `points` não estão coerentes (um sem o outro). |
+
 ## O que **ainda não** funciona (próximas histórias)
 
 - Executar as etapas, abrir arquivos/linha e rodar comandos no terminal — **UC03**.
-- Motor de avaliação, pontuação (`points`) e nota final — **UC04**.
+- **Executar** o script de verificação, mostrar sucesso/falha e a solução esperada — **UC04**.
+- Somar a pontuação e mostrar a nota final e o resumo de etapas — **UC04** (RF15/RF16).
 - Provisionar o ambiente a partir de `backend.imageid` (Docker) — execução (UC03).
 - Catálogo com múltiplos tutoriais e tela de escolha do projeto — **RF01**.
-- Validação _semântica_ do conteúdo dos scripts de verificação — **UC02**
-  (nesta história verifica-se apenas a **existência** dos scripts).
+- Análise _semântica profunda_ do que o script verifica (a US02 checa **formato e
+  sintaxe**, não a lógica de verificação; não roda `shellcheck`).
 
 O comando **Executar tutorial** aparece quando há um tutorial válido, mas por ora
 apenas exibe um aviso de que a execução chega no UC03.
@@ -140,6 +152,48 @@ Um exemplo completo (padrão CQRS) está em [`examples/tutorial-cqrs/`](examples
 
 ---
 
+## Avaliações automáticas (US02)
+
+Cada etapa pode ter **uma** avaliação automática: um script `verify` que confere
+se a etapa foi concluída. A execução do script é responsabilidade do UC03/UC04 —
+aqui a extensão só **valida** o script no momento da autoria.
+
+### Vincular a avaliação a uma etapa
+
+```jsonc
+{
+  "title": "Separar comandos de consultas",
+  "text": "step-01.md",
+  "verify": "verify-step-01.sh",   // um único script .sh, relativo ao index.json
+  "points": 10                      // pontuação da etapa (inteiro >= 0)
+}
+```
+
+### O que é validado no `verify`
+
+| Regra | Resultado se violada |
+| --- | --- |
+| O caminho termina em **`.sh`** (arquivo bash). | **Erro** — tutorial fica indisponível. |
+| A 1ª linha é um **shebang** `#!/usr/bin/env bash` (ou `#!/bin/sh`). | Ausente ⇒ **aviso**; interpretador diferente de bash/sh ⇒ **erro**. |
+| A **sintaxe** passa em `bash -n` (o script é analisado, **nunca executado**). | **Erro** com a linha reportada pelo `bash`. |
+| `bash` disponível no ambiente. | Indisponível (ex.: Windows sem Git Bash) ⇒ **aviso**; a checagem de sintaxe completa ocorre em Linux/Codespaces. |
+
+As mesmas checagens valem para `background` (setup de `intro`/`finish`), porém
+sempre como **aviso** — `background` não é script de avaliação.
+
+### Uma avaliação por etapa
+
+`verify` é **uma string**: uma lista (`["a.sh", "b.sh"]`) ou uma etapa com a
+propriedade `verify` repetida são rejeitadas.
+
+### Pontuação (`points`)
+
+`points` é um inteiro ≥ 0. A extensão avisa quando `verify` e `points` não andam
+juntos: etapa com `verify` e sem `points`, ou com `points` e sem `verify`. A
+**soma** dos pontos e a **nota final** aparecem só na execução (UC04).
+
+---
+
 ## Desenvolvimento
 
 ```bash
@@ -182,10 +236,13 @@ Ubuntu 24.04 "noble"; em versões anteriores use `libasound2`, `libgtk-3-0`,
 | `src/loading/TutorialSchemaValidator.ts` | Validação contra o JSON Schema draft-07 (Ajv). |
 | `src/loading/JsonSource.ts` | Parser posicional (`jsonc-parser`): mapeia caminho → linha/coluna. |
 | `src/loading/ReferenceValidator.ts` | Existência dos `.md` / `.sh` / `file.name` (parte de existência do `VerifyScriptValidator`). |
-| `src/loading/TutorialLoader.ts` | Orquestra descoberta → parse → schema → referências → `LoadResult`. |
+| `src/loading/VerifyScriptValidator.ts` | Formato e validade do `verify`: `.sh`, shebang, `bash -n` (US02). |
+| `src/loading/EvaluationChecks.ts` | Coerência `verify`↔`points` (RF14), `verify` único por etapa (CA-2) e orquestração da camada US02. |
+| `src/fs/ScriptReader.ts` / `BashSyntaxChecker.ts` | Leitura do conteúdo do script e checagem de sintaxe (`bash -n`), com implementações Node e VS Code. |
+| `src/loading/TutorialLoader.ts` | Orquestra descoberta → parse → schema → referências → scripts de avaliação → `LoadResult`. |
 | `src/fs/workspace.ts` / `TutorialWatcher.ts` | Descoberta do `index.json`, resolução de caminhos e revalidação ao vivo. |
 | `src/diagnostics/JsonDiagnostics.ts` | `DiagnosticCollection` do `index.json`. |
-| `src/view/TutorialTreeViewProvider.ts` | TreeView com título + etapas. |
+| `src/view/TutorialTreeViewProvider.ts` | TreeView com título + etapas (com avaliação vinculada e pontuação). |
 | `src/extension.ts` | Ativação e fio condutor. |
 
 ## Licença

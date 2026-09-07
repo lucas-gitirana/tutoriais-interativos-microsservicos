@@ -3,7 +3,7 @@ import { LoadResult } from '../loading/types';
 
 export type TutorialNode =
   | { kind: 'root'; label: string }
-  | { kind: 'step'; label: string; index: number }
+  | { kind: 'step'; label: string; index: number; hasVerify: boolean; points?: number }
   | { kind: 'invalid'; label: string; indexUri: vscode.Uri };
 
 /**
@@ -13,7 +13,9 @@ export type TutorialNode =
  * - `invalid` -> um item "Tutorial invalido" que abre o `index.json`;
  * - `ok`      -> no raiz com o titulo + um filho por etapa, na ordem do array.
  *
- * Sem icone de status por etapa — status de execucao e UC03.
+ * Cada etapa indica se tem avaliacao automatica vinculada (`verify`) e sua
+ * pontuacao (`points`) — pos-condicao da US02. Sem icone de status de execucao
+ * por etapa — isso e UC03.
  */
 export class TutorialTreeViewProvider implements vscode.TreeDataProvider<TutorialNode> {
   private readonly changeEmitter = new vscode.EventEmitter<TutorialNode | undefined>();
@@ -44,7 +46,21 @@ export class TutorialTreeViewProvider implements vscode.TreeDataProvider<Tutoria
           vscode.TreeItemCollapsibleState.None
         );
         item.contextValue = 'tutorialStep';
-        item.description = `Etapa ${node.index + 1}`;
+        const partes = [`Etapa ${node.index + 1}`];
+        if (node.hasVerify) {
+          partes.push('avaliação automática');
+        }
+        if (node.points !== undefined) {
+          partes.push(`${node.points} pts`);
+        }
+        item.description = partes.join(' • ');
+        item.iconPath = new vscode.ThemeIcon(
+          node.hasVerify ? 'checklist' : 'circle-outline'
+        );
+        item.tooltip = node.hasVerify
+          ? `Etapa ${node.index + 1} — avaliação automática vinculada` +
+            (node.points !== undefined ? ` (${node.points} pts)` : '')
+          : `Etapa ${node.index + 1} — sem avaliação automática`;
         return item;
       }
       case 'invalid': {
@@ -72,7 +88,9 @@ export class TutorialTreeViewProvider implements vscode.TreeDataProvider<Tutoria
       return this.current.tutorial.details.steps.map((step, index) => ({
         kind: 'step' as const,
         label: step.title,
-        index
+        index,
+        hasVerify: typeof step.verify === 'string' && step.verify.length > 0,
+        points: typeof step.points === 'number' ? step.points : undefined
       }));
     }
     return [];

@@ -1,0 +1,17 @@
+{
+  "title": "Etapa vinculada a mais de um script",
+  "description": "O campo verify traz uma lista de scripts — o schema admite apenas um.",
+  "details": {
+    "intro": { "text": "intro.md" },
+    "steps": [
+      {
+        "title": "Etapa 1",
+        "text": "step-01.md",
+        "verify": ["verify-step-01.sh", "verify-step-02.sh"],
+        "points": 10
+      }
+    ],
+    "finish": { "text": "finish.md" }
+  },
+  "backend": { "imageid": "exemplo/ambiente:latest" }
+}

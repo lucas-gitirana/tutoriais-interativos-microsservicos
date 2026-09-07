@@ -1,0 +1,16 @@
+{
+  "title": "Avaliação sem pontuação",
+  "description": "A etapa tem script de verificação mas nenhuma pontuação atribuída.",
+  "details": {
+    "intro": { "text": "intro.md" },
+    "steps": [
+      {
+        "title": "Etapa 1",
+        "text": "step-01.md",
+        "verify": "verify-step-01.sh"
+      }
+    ],
+    "finish": { "text": "finish.md" }
+  },
+  "backend": { "imageid": "exemplo/ambiente:latest" }
+}

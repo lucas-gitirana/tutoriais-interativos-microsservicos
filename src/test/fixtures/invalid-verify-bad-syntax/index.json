@@ -1,0 +1,17 @@
+{
+  "title": "Avaliação com erro de sintaxe",
+  "description": "O script .sh de verificação tem sintaxe bash inválida.",
+  "details": {
+    "intro": { "text": "intro.md" },
+    "steps": [
+      {
+        "title": "Etapa 1",
+        "text": "step-01.md",
+        "verify": "verify-step-01.sh",
+        "points": 10
+      }
+    ],
+    "finish": { "text": "finish.md" }
+  },
+  "backend": { "imageid": "exemplo/ambiente:latest" }
+}

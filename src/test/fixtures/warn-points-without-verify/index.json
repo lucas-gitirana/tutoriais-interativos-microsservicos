@@ -1,0 +1,16 @@
+{
+  "title": "Pontuação sem avaliação",
+  "description": "A etapa tem pontuação atribuída mas nenhum script de verificação vinculado.",
+  "details": {
+    "intro": { "text": "intro.md" },
+    "steps": [
+      {
+        "title": "Etapa 1",
+        "text": "step-01.md",
+        "points": 10
+      }
+    ],
+    "finish": { "text": "finish.md" }
+  },
+  "backend": { "imageid": "exemplo/ambiente:latest" }
+}
