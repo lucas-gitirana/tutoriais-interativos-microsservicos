@@ -20,6 +20,12 @@
         const command = atob(encoded);
         vscode.postMessage({ type: 'runCommand', command });
       }
+      return;
+    }
+    if (target.id === 'btn-verify') {
+      target.setAttribute('disabled', 'true');
+      target.textContent = 'Verificando…';
+      vscode.postMessage({ type: 'verify' });
     }
   });
 })();

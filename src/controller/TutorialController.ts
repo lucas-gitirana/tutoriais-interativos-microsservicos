@@ -1,3 +1,4 @@
+import { VerificationResult } from '../evaluation/types';
 import { Screen, SimpleEmitter, StepStatus } from './types';
 
 /** Estado publico notificado a cada mudanca de tela/status. */
@@ -24,6 +25,11 @@ export interface ExecutionState {
  * divergencia a registrar em `diagramas.md` apos confirmacao do autor.
  * `stop()` nao e implementado nesta historia (interromper a execucao e a
  * US04, fora do escopo da US03).
+ *
+ * Desde a US04: para etapas com `verify` vinculado (`hasVerify[index] === true`), `next()` **nao**
+ * marca `COMPLETED` automaticamente — o status dessas etapas so muda via
+ * {@link recordVerificationResult}, chamado depois de uma verificacao automatica real (CA-2, CA-4).
+ * Etapas sem `verify` mantem o comportamento herdado de US03 (avancar marca `COMPLETED`).
  */
 export class TutorialController {
   private screen: Screen | undefined;
@@ -32,7 +38,10 @@ export class TutorialController {
 
   readonly onDidChange = this.changeEmitter.event;
 
-  constructor(private readonly totalSteps: number) {}
+  constructor(
+    private readonly totalSteps: number,
+    private readonly hasVerify: readonly boolean[]
+  ) {}
 
   /** Abre a tela de introducao (CA-2). Idempotente: nao reinicia o progresso ja feito. */
   start(): void {
@@ -53,7 +62,9 @@ export class TutorialController {
       return;
     }
     if (this.screen.kind === 'step') {
-      this.statuses.set(this.screen.index, StepStatus.COMPLETED);
+      if (!this.hasVerify[this.screen.index]) {
+        this.statuses.set(this.screen.index, StepStatus.COMPLETED);
+      }
       const nextIndex = this.screen.index + 1;
       this.setScreen(
         nextIndex < this.totalSteps ? { kind: 'step', index: nextIndex } : { kind: 'finish' }
@@ -87,6 +98,18 @@ export class TutorialController {
       return;
     }
     this.setScreen({ kind: 'step', index });
+  }
+
+  /**
+   * Registra o resultado de uma verificacao automatica manual (CA-2, CA-3, CA-4 da US04): marca a
+   * etapa `index` como `COMPLETED` (sucesso) ou `FAILED` (falha). Nao altera a tela atual — reexecutar
+   * "Verificar" (CA-3) so atualiza o ultimo resultado, sem navegar.
+   */
+  recordVerificationResult(index: number, result: VerificationResult): void {
+    this.statuses.set(index, result.success ? StepStatus.COMPLETED : StepStatus.FAILED);
+    if (this.screen) {
+      this.changeEmitter.fire({ screen: this.screen, statuses: new Map(this.statuses) });
+    }
   }
 
   getScreen(): Screen | undefined {

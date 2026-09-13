@@ -1,21 +1,29 @@
 import * as vscode from 'vscode';
+import { FinishSummaryItem } from '../evaluation/ScoreTracker';
 
 /** Mensagens que o script do webview (`media/webview.js`) envia para a extensao. */
 export type WebviewMessage =
   | { type: 'next' }
   | { type: 'previous' }
-  | { type: 'runCommand'; command: string };
+  | { type: 'runCommand'; command: string }
+  | { type: 'verify' };
+
+/** Ultimo resultado de verificacao conhecido da etapa (US04, CA-2/CA-4). */
+export interface StepVerificationView {
+  success: boolean;
+  /** Mensagem de confirmacao (sucesso) ou resultado esperado (falha, CA-4). */
+  message: string;
+}
 
 export interface StepViewData {
   title: string;
   index: number;
   total: number;
   html: string;
-}
-
-export interface FinishSummaryItem {
-  title: string;
-  completed: boolean;
+  /** `true` quando a etapa tem script `verify` vinculado (CA-1). */
+  hasVerify: boolean;
+  /** Ultimo resultado de verificacao desta etapa, se ja verificada. */
+  verification?: StepVerificationView;
 }
 
 /**
@@ -91,6 +99,7 @@ export class TutorialWebviewPanel implements vscode.Disposable {
     this.setHtml(
       `Etapa ${data.index + 1}/${data.total} — ${data.title}`,
       `<article class="tutoriais-content">${data.html}</article>
+       ${data.hasVerify ? renderVerifyBlock(data.verification) : ''}
        <footer class="tutoriais-nav">
          ${data.index > 0 ? '<button id="btn-previous">Voltar</button>' : ''}
          <button id="btn-next" class="primary">${isLast ? 'Concluir tutorial' : 'Avançar'}</button>
@@ -98,18 +107,20 @@ export class TutorialWebviewPanel implements vscode.Disposable {
     );
   }
 
-  renderFinish(html: string, summary: FinishSummaryItem[]): void {
-    const list = summary
-      .map(
-        (item) =>
-          `<li class="${item.completed ? 'done' : 'pending'}">${item.completed ? '✓' : '○'} ${escapeHtml(
-            item.title
-          )}</li>`
-      )
-      .join('');
+  renderFinish(
+    html: string,
+    summary: FinishSummaryItem[],
+    score: { total: number; possible: number }
+  ): void {
+    const list = summary.map((item) => renderSummaryItem(item)).join('');
+    const scoreHtml =
+      score.possible > 0
+        ? `<p class="tutoriais-score">Nota final: <strong>${score.total} / ${score.possible} pontos</strong></p>`
+        : '';
     this.setHtml(
       'Tutorial concluído',
       `<article class="tutoriais-content">${html}</article>
+       ${scoreHtml}
        <ul class="tutoriais-summary">${list}</ul>`
     );
   }
@@ -161,6 +172,33 @@ function getNonce(): string {
     text += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return text;
+}
+
+/** Bloco de verificacao automatica da etapa (CA-1, CA-2, CA-4). */
+function renderVerifyBlock(verification: StepVerificationView | undefined): string {
+  const resultHtml = verification
+    ? verification.success
+      ? `<div id="verify-result" class="success">✓ Etapa concluída corretamente.</div>`
+      : `<div id="verify-result" class="failure">✗ Etapa incorreta.<pre>${escapeHtml(
+          verification.message
+        )}</pre></div>`
+    : '<div id="verify-result" class="hidden"></div>';
+  return `<div class="tutoriais-verify">
+    <button id="btn-verify">Verificar</button>
+    ${resultHtml}
+  </div>`;
+}
+
+const SUMMARY_MARKERS: Record<FinishSummaryItem['status'], { symbol: string; cssClass: string }> = {
+  correct: { symbol: '✓', cssClass: 'correct' },
+  incorrect: { symbol: '✗', cssClass: 'incorrect' },
+  'not-evaluated': { symbol: '—', cssClass: 'not-evaluated' },
+  'no-evaluation': { symbol: '✓', cssClass: 'no-evaluation' }
+};
+
+function renderSummaryItem(item: FinishSummaryItem): string {
+  const marker = SUMMARY_MARKERS[item.status];
+  return `<li class="${marker.cssClass}">${marker.symbol} ${escapeHtml(item.title)}</li>`;
 }
 
 function escapeHtml(text: string): string {

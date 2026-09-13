@@ -23,7 +23,8 @@ export type TutorialNode =
  *
  * Cada etapa indica se tem avaliacao automatica vinculada (`verify`) e sua
  * pontuacao (`points`) na `description` (US02), e o **icone** reflete o
- * **status de execucao** da etapa (US03, CA-4: pendente/concluida) — clicar
+ * **status de execucao/verificacao** da etapa (pendente/concluida/incorreta —
+ * US03 CA-4 e US04 CA-2) — clicar
  * numa etapa abre a etapa selecionada (CA-3, `tutoriais.abrirEtapa`).
  */
 export class TutorialTreeViewProvider implements vscode.TreeDataProvider<TutorialNode> {
@@ -71,11 +72,8 @@ export class TutorialTreeViewProvider implements vscode.TreeDataProvider<Tutoria
           partes.push(`${node.points} pts`);
         }
         item.description = partes.join(' • ');
-        const concluida = node.status === StepStatus.COMPLETED;
-        item.iconPath = new vscode.ThemeIcon(concluida ? 'check' : 'circle-outline');
-        item.tooltip = concluida
-          ? `Etapa ${node.index + 1} — concluída`
-          : `Etapa ${node.index + 1} — pendente`;
+        item.iconPath = new vscode.ThemeIcon(iconForStatus(node.status));
+        item.tooltip = `Etapa ${node.index + 1} — ${tooltipForStatus(node.status)}`;
         item.command = {
           command: 'tutoriais.abrirEtapa',
           title: 'Abrir etapa',
@@ -136,5 +134,28 @@ export class TutorialTreeViewProvider implements vscode.TreeDataProvider<Tutoria
 
   dispose(): void {
     this.changeEmitter.dispose();
+  }
+}
+
+/** Icone conforme o status de execucao/verificacao da etapa (US03 CA-4, US04 CA-2). */
+function iconForStatus(status: StepStatus): string {
+  switch (status) {
+    case StepStatus.COMPLETED:
+      return 'check';
+    case StepStatus.FAILED:
+      return 'error';
+    default:
+      return 'circle-outline';
+  }
+}
+
+function tooltipForStatus(status: StepStatus): string {
+  switch (status) {
+    case StepStatus.COMPLETED:
+      return 'concluída';
+    case StepStatus.FAILED:
+      return 'incorreta';
+    default:
+      return 'pendente';
   }
 }

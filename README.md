@@ -6,13 +6,16 @@ sobre padrões de microsserviços e observabilidade (TCC de Engenharia de Softwa
 UDESC).
 
 Reúne as entregas da **US01 – Criar tutorial com base em arquivo JSON** (UC01),
-da **US02 – Criar avaliações automáticas** (UC02) e da **US03 – Executar
-tutorial do repositório** (UC03). Cobre autoria/validação (ao abrir um
-repositório com um `index.json` válido, o tutorial aparece numa aba própria na
-Activity Bar com o título, a lista ordenada de etapas e a avaliação vinculada a
-cada uma) **e** execução: o professor/aluno navega pelas etapas num painel
-próprio, com arquivos e comandos de terminal abertos automaticamente quando a
-etapa pede.
+da **US02 – Criar avaliações automáticas** (UC02), da **US03 – Executar
+tutorial do repositório** (UC03) e da **US04 – Executar avaliação automática de
+etapa** (UC04). Cobre autoria/validação (ao abrir um repositório com um
+`index.json` válido, o tutorial aparece numa aba própria na Activity Bar com o
+título, a lista ordenada de etapas e a avaliação vinculada a cada uma),
+execução (o professor/aluno navega pelas etapas num painel próprio, com
+arquivos e comandos de terminal abertos automaticamente quando a etapa pede)
+**e** avaliação automática de fato: rodar o script `verify` de uma etapa,
+indicar sucesso/falha, mostrar o resultado esperado numa falha e calcular a
+nota final ao concluir o tutorial.
 
 ## O que já funciona (US01)
 
@@ -48,15 +51,31 @@ etapa pede.
 | RF09 | O `background` de `intro`/`finish`, se houver, roda automaticamente no terminal ao abrir a tela (sem precisar clicar). |
 
 Interromper a execução em andamento (fechar a janela da etapa, remover os
-ícones de status) é uma história separada da mesma UC03 (**US04**), ainda não
-implementada. A avaliação automática de fato (rodar o `verify`, mostrar
-sucesso/falha, somar pontos) é **UC04**.
+ícones de status) continua **fora** do escopo implementado — é uma história
+separada da mesma UC03, ainda não feita.
+
+## O que já funciona (US04)
+
+| Critério de aceitação | Comportamento |
+| --- | --- |
+| US04 CA-1 | Etapa com `verify` vinculado ⇒ botão **Verificar** aparece no painel. |
+| US04 CA-2 | Ao clicar em Verificar, o script roda de verdade e o painel mostra sucesso (✓) ou falha (✗); o ícone da etapa na Activity Bar acompanha (check / erro). |
+| US04 CA-3 | O botão Verificar pode ser clicado quantas vezes forem necessárias — sem limite. |
+| US04 CA-4 | Em caso de falha, o painel mostra o **resultado esperado** (a saída que o próprio script imprimiu). |
+| US05 CA-1 | O script só roda quando o botão Verificar é clicado — nunca automaticamente. |
+| US05 CA-2 | É possível avançar (**Avançar**) sem nunca ter clicado em Verificar; a etapa fica marcada como "não verificada", sem gerar erro. |
+| RF15 | A tela de finalização mostra a **nota final** (soma dos `points` das etapas corretas / soma de todas as etapas com avaliação). |
+| RF16 | A tela de finalização lista cada etapa como correta, incorreta, não verificada ou sem avaliação automática. |
+
+Desde a US04, **etapas com `verify` vinculado só ganham o ícone de check
+quando a verificação automática passa** — avançar sozinho (sem verificar) não
+marca mais a etapa como concluída (diferença em relação ao comportamento da
+US03, que valia só enquanto a avaliação automática ainda não existia). Etapas
+**sem** `verify` continuam sendo marcadas ao avançar, como antes.
 
 ## O que **ainda não** funciona (próximas histórias)
 
-- Interromper a execução do tutorial em andamento — **US04** (mesma UC03).
-- **Executar** o script de verificação, mostrar sucesso/falha e a solução esperada — **UC04**.
-- Somar a pontuação e mostrar a nota final e o resumo de etapas concluídas/falhas — **UC04** (RF15/RF16).
+- Interromper a execução do tutorial em andamento — história separada da UC03, ainda não implementada.
 - Provisionar o ambiente a partir de `backend.imageid` (Docker) — fora do escopo mapeado (ver plano da US03).
 - Catálogo com múltiplos tutoriais e tela de escolha do projeto — **RF01**.
 - Análise _semântica profunda_ do que o script verifica (a US02 checa **formato e
@@ -206,7 +225,67 @@ propriedade `verify` repetida são rejeitadas.
 
 `points` é um inteiro ≥ 0. A extensão avisa quando `verify` e `points` não andam
 juntos: etapa com `verify` e sem `points`, ou com `points` e sem `verify`. A
-**soma** dos pontos e a **nota final** aparecem só na execução (UC04).
+**soma** dos pontos e a **nota final** aparecem na execução (US04).
+
+---
+
+## Avaliação automática de etapas (US04)
+
+Numa etapa com `verify` vinculado, o painel do tutorial mostra um botão
+**Verificar**. Ao clicar:
+
+1. O script `verify` da etapa é executado de verdade (não é só uma checagem de
+   sintaxe como na autoria/US02) — em segundo plano, sem abrir no terminal
+   integrado (só uma mensagem fixa de "Executando verificação..." aparece lá,
+   pra dar transparência sem duplicar a execução).
+2. Se o script terminar com código de saída `0`, a etapa é marcada como
+   **correta** (✓) — o ícone na Activity Bar vira um check.
+3. Se terminar com qualquer outro código, a etapa é marcada como **incorreta**
+   (✗) — o ícone vira um símbolo de erro.
+4. O botão pode ser clicado de novo quantas vezes forem necessárias — cada
+   clique roda o script outra vez e atualiza o resultado.
+
+### Convenção: como escrever o "resultado esperado" (CA-4)
+
+Quando a etapa é avaliada como incorreta, o painel mostra ao aluno o que o
+`verify.sh` **imprimiu** (stdout + stderr) como o "resultado esperado". Não há
+nenhum campo novo no `index.json` para isso — é uma convenção de escrita do
+script: **ao falhar, o script deve `echo` uma mensagem explicando o que
+faltou**, antes do `exit` com código diferente de zero. Um script que só falha
+silenciosamente (sem imprimir nada) ainda funciona, mas o aluno só vê uma
+mensagem genérica.
+
+```bash
+#!/usr/bin/env bash
+set -uo pipefail
+
+if [ ! -f src/order-service/projections.py ]; then
+  echo "Esperado: arquivo 'src/order-service/projections.py' com o modelo de leitura (projeção)."
+  exit 1
+fi
+echo "Etapa concluída."
+```
+
+> Evite `set -e` sozinho se o script tiver mais de uma checagem — ele encerra
+> o script no primeiro comando que falhar, **antes** do seu `echo` explicativo
+> rodar. Prefira `if`/`exit` explícitos, como no exemplo acima.
+
+### Nota final e resumo (RF15, RF16)
+
+Ao concluir a última etapa, a tela de finalização mostra:
+
+- **Nota final**: soma dos `points` de todas as etapas cujo `verify` passou,
+  sobre a soma dos `points` de todas as etapas que têm `verify` (etapas sem
+  avaliação automática não entram na conta).
+- Um **resumo por etapa**: correta, incorreta, não verificada (tinha `verify`
+  mas o aluno nunca clicou em Verificar — ver US05 abaixo) ou sem avaliação
+  automática (etapa que nunca teve `verify`).
+
+### Ignorar a avaliação automática (US05)
+
+O script `verify` de uma etapa **nunca** roda sozinho — só quando o aluno
+clica em Verificar. É perfeitamente válido avançar sem verificar: a etapa
+fica marcada como "não verificada" no resumo final, sem gerar nenhum erro.
 
 ---
 
@@ -258,7 +337,13 @@ Ubuntu 24.04 "noble"; em versões anteriores use `libasound2`, `libgtk-3-0`,
 | `src/loading/TutorialLoader.ts` | Orquestra descoberta → parse → schema → referências → scripts de avaliação → `LoadResult`. |
 | `src/fs/workspace.ts` / `TutorialWatcher.ts` | Descoberta do `index.json`, resolução de caminhos e revalidação ao vivo. |
 | `src/diagnostics/JsonDiagnostics.ts` | `DiagnosticCollection` do `index.json`. |
-| `src/view/TutorialTreeViewProvider.ts` | TreeView com título + etapas (com avaliação vinculada e pontuação). |
+| `src/view/TutorialTreeViewProvider.ts` | TreeView com título + etapas (com avaliação vinculada, pontuação e status de execução/verificação). |
+| `src/controller/TutorialController.ts` | Máquina de estados da execução (US03) — `start`/`next`/`previous`/`goToStep`; desde a US04, `recordVerificationResult` marca etapas com `verify` como corretas/incorretas. |
+| `src/execution/*` | `FileNavigationService`, `TerminalService`, `StepExecutor` — abertura de arquivo/linha e comandos de terminal (US03). |
+| `src/webview/TutorialWebviewPanel.ts` | Painel único da execução: introdução, etapa (com botão Verificar) e finalização (nota + resumo). |
+| `src/evaluation/VerifyScriptExecutor.ts` / `NodeVerifyScriptExecutor.ts` | Execução real (headless, `child_process`) do script `verify` de uma etapa — captura exit code e saída (US04). |
+| `src/evaluation/EvaluationRunner.ts` | Orquestra a verificação de uma etapa: resolve o caminho do script, roda o executor e produz o `VerificationResult` (US04). |
+| `src/evaluation/ScoreTracker.ts` | Calcula a nota final e o resumo por etapa a partir do status de cada uma (RF15/RF16). |
 | `src/extension.ts` | Ativação e fio condutor. |
 
 ## Licença

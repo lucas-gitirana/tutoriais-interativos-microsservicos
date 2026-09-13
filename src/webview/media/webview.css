@@ -83,3 +83,71 @@ h1 {
 .tutoriais-summary li.pending {
   color: var(--vscode-descriptionForeground);
 }
+
+.tutoriais-summary li.correct {
+  color: var(--vscode-testing-iconPassed, var(--vscode-charts-green, var(--vscode-foreground)));
+}
+
+.tutoriais-summary li.incorrect {
+  color: var(--vscode-testing-iconFailed, var(--vscode-errorForeground));
+}
+
+.tutoriais-summary li.not-evaluated {
+  color: var(--vscode-descriptionForeground);
+}
+
+.tutoriais-summary li.no-evaluation {
+  color: var(--vscode-foreground);
+}
+
+.tutoriais-score {
+  margin-top: 16px;
+  font-size: 1.05em;
+}
+
+.tutoriais-verify {
+  margin-top: 16px;
+}
+
+.tutoriais-verify #btn-verify {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none;
+  padding: 6px 14px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.tutoriais-verify #btn-verify:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.tutoriais-verify #btn-verify:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+#verify-result {
+  margin-top: 8px;
+}
+
+#verify-result.hidden {
+  display: none;
+}
+
+#verify-result.success {
+  color: var(--vscode-testing-iconPassed, var(--vscode-charts-green, var(--vscode-foreground)));
+}
+
+#verify-result.failure {
+  color: var(--vscode-testing-iconFailed, var(--vscode-errorForeground));
+}
+
+#verify-result pre {
+  background: var(--vscode-textCodeBlock-background);
+  color: var(--vscode-foreground);
+  padding: 8px 12px;
+  border-radius: 4px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}

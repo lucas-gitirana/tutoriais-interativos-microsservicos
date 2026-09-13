@@ -3,6 +3,11 @@ import { registerCommands } from './commands/registerCommands';
 import { TutorialController } from './controller/TutorialController';
 import { StepStatus } from './controller/types';
 import { JsonDiagnostics } from './diagnostics/JsonDiagnostics';
+import { EvaluationRunner } from './evaluation/EvaluationRunner';
+import { NodeVerifyScriptExecutor } from './evaluation/NodeVerifyScriptExecutor';
+import { getSummary, getTotalScore } from './evaluation/ScoreTracker';
+import { VerificationResult } from './evaluation/types';
+import { VerifyScriptExecutor } from './evaluation/VerifyScriptExecutor';
 import { FileNavigationService } from './execution/FileNavigationService';
 import { StepExecutor } from './execution/StepExecutor';
 import { TerminalService } from './execution/TerminalService';
@@ -37,7 +42,9 @@ export interface TutorialExtensionApi {
    * Simula uma mensagem vinda do webview (`media/webview.js`), ja que os testes
    * de integracao nao interagem com o DOM dentro do iframe do webview.
    */
-  simulateWebviewMessage(message: WebviewMessage): void;
+  simulateWebviewMessage(message: WebviewMessage): Promise<void>;
+  /** Injeta um `VerifyScriptExecutor` (ex.: fake) para os testes de integracao (US04). */
+  setVerifyScriptExecutor(executor: VerifyScriptExecutor): void;
 }
 
 export async function activate(
@@ -52,6 +59,7 @@ export async function activate(
   const webviewPanel = new TutorialWebviewPanel(context.extensionUri);
   const markdownRenderer = new MarkdownRenderer();
   let terminalService = new TerminalService(new VscodeTerminalFactory());
+  let verifyExecutor: VerifyScriptExecutor = new NodeVerifyScriptExecutor();
 
   const treeView = vscode.window.createTreeView('tutoriaisView', {
     treeDataProvider: treeProvider
@@ -61,6 +69,8 @@ export async function activate(
   let controller: TutorialController | undefined;
   let controllerSub: vscode.Disposable | undefined;
   let stepExecutor: StepExecutor | undefined;
+  /** Ultimo resultado de verificacao conhecido de cada etapa (US04), por indice. */
+  const lastVerification = new Map<number, VerificationResult>();
 
   const tutorialDirOf = (result: LoadResult): vscode.Uri | undefined =>
     result.status === 'ok' ? dirOf(result.indexUri) : undefined;
@@ -70,6 +80,7 @@ export async function activate(
     controllerSub = undefined;
     controller = undefined;
     stepExecutor = undefined;
+    lastVerification.clear();
     webviewPanel.close();
   };
 
@@ -102,21 +113,34 @@ export async function activate(
     if (screen.kind === 'step') {
       const step = tutorial.details.steps[screen.index];
       const rendered = await stepExecutor.openStep(step);
+      const hasVerify = typeof step.verify === 'string' && step.verify.length > 0;
+      const verification = lastVerification.get(screen.index);
       webviewPanel.renderStep({
         title: step.title,
         index: screen.index,
         total: tutorial.details.steps.length,
-        html: rendered.html
+        html: rendered.html,
+        hasVerify,
+        verification: verification
+          ? {
+              success: verification.success,
+              message: verification.success
+                ? verification.output
+                : (verification.expectedOutput ?? '')
+            }
+          : undefined
       });
       return;
     }
 
     const rendered = await stepExecutor.openTextBlock(tutorial.details.finish);
-    const summary = tutorial.details.steps.map((step, index) => ({
-      title: step.title,
-      completed: controller!.statusOf(index) === StepStatus.COMPLETED
-    }));
-    webviewPanel.renderFinish(rendered.html, summary);
+    const statuses = new Map<number, StepStatus>();
+    tutorial.details.steps.forEach((_, index) => statuses.set(index, controller!.statusOf(index)));
+    webviewPanel.renderFinish(
+      rendered.html,
+      getSummary(tutorial.details.steps, statuses),
+      getTotalScore(tutorial.details.steps, statuses)
+    );
   };
 
   /** Garante um `TutorialController` para a execucao em curso, criando-o na primeira interacao. */
@@ -130,7 +154,10 @@ export async function activate(
     }
     const webview = webviewPanel.reveal(tutorialDir);
     stepExecutor = buildStepExecutor(tutorialDir, webview);
-    controller = new TutorialController(lastResult.tutorial.details.steps.length);
+    const hasVerify = lastResult.tutorial.details.steps.map(
+      (step) => typeof step.verify === 'string' && step.verify.length > 0
+    );
+    controller = new TutorialController(lastResult.tutorial.details.steps.length, hasVerify);
     controllerSub = controller.onDidChange((state) => {
       treeProvider.updateStatuses(state.statuses);
       void renderScreen();
@@ -158,7 +185,7 @@ export async function activate(
     active.goToStep(index);
   };
 
-  const handleWebviewMessage = (msg: WebviewMessage): void => {
+  const handleWebviewMessage = async (msg: WebviewMessage): Promise<void> => {
     if (!controller) {
       return;
     }
@@ -168,7 +195,29 @@ export async function activate(
       controller.previous();
     } else if (msg.type === 'runCommand') {
       terminalService.runCommand(msg.command);
+    } else if (msg.type === 'verify') {
+      await runVerification();
     }
+  };
+
+  /** Executa a verificacao automatica da etapa atual (CA-1/CA-2/CA-4 da US04). */
+  const runVerification = async (): Promise<void> => {
+    const tutorialDir = tutorialDirOf(lastResult);
+    if (lastResult.status !== 'ok' || !controller || !tutorialDir) {
+      return;
+    }
+    const screen = controller.getScreen();
+    if (!screen || screen.kind !== 'step') {
+      return;
+    }
+    const step = lastResult.tutorial.details.steps[screen.index];
+    if (typeof step.verify !== 'string') {
+      return;
+    }
+    const runner = new EvaluationRunner({ executor: verifyExecutor, terminal: terminalService });
+    const result = await runner.verify(step, tutorialDir.fsPath);
+    lastVerification.set(screen.index, result);
+    controller.recordVerificationResult(screen.index, result);
   };
 
   const applyResult = async (result: LoadResult): Promise<void> => {
@@ -240,6 +289,9 @@ export async function activate(
     getController: () => controller,
     setTerminalService: (service: TerminalService) => {
       terminalService = service;
+    },
+    setVerifyScriptExecutor: (executor: VerifyScriptExecutor) => {
+      verifyExecutor = executor;
     },
     simulateWebviewMessage: handleWebviewMessage
   };
