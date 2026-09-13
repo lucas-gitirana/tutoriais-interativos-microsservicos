@@ -61,19 +61,31 @@ describeScenario('execution', 'execucao de um tutorial valido (US03)', () => {
     api.simulateWebviewMessage({ type: 'runCommand', command: 'docker ps' });
     await waitFor(() => fakeFactory.handles.some((h) => h.sent.includes('docker ps')));
 
-    // CA-4: avancar marca a etapa 0 como concluida (check) na TreeView.
+    // Desde a US04: a etapa 0 tem `verify` vinculado, entao avancar NAO marca conclusao
+    // automaticamente mais (isso passou a depender do resultado da verificacao automatica
+    // real — ver `evaluation-run.test.ts`). O icone de "check" por avanco simples continua
+    // valendo so para etapas sem `verify` (coberto em unit `tutorialController.test.ts`).
     api.simulateWebviewMessage({ type: 'next' });
-    await waitFor(() => api.getController()?.statusOf(0) === StepStatus.COMPLETED);
+    await waitFor(() => {
+      const screen = api.getController()?.getScreen();
+      return screen?.kind === 'step' && screen.index === 1;
+    });
+    // Espera o render assincrono da etapa 1 assentar antes do proximo next() — sem isso, dois
+    // `renderScreen()` sobrepostos (etapa 1 e finalizacao) podem resolver fora de ordem e deixar
+    // o HTML da etapa 1 (ou pior, da etapa 0) sobrescrevendo o da finalizacao por ultimo.
+    await waitFor(() => api.webviewPanel.getHtmlForTests()?.includes('Etapa 2/2') ?? false);
     const root = api.treeProvider.getChildren()[0];
     const steps = api.treeProvider.getChildren(root);
     const step0 = steps.find((s) => s.kind === 'step' && s.index === 0);
     assert.ok(step0 && step0.kind === 'step');
-    assert.strictEqual((step0 as { status: StepStatus }).status, StepStatus.COMPLETED);
+    assert.strictEqual((step0 as { status: StepStatus }).status, StepStatus.PENDING);
 
-    // Avanca ate a ultima etapa e depois para a finalizacao (CA-5).
+    // Avanca ate a ultima etapa e depois para a finalizacao (CA-5). Espera o HTML da
+    // finalizacao em si (nao so o estado interno, que muda de forma sincrona bem antes do
+    // render assincrono assentar — mesmo motivo do ajuste acima).
     api.simulateWebviewMessage({ type: 'next' });
-    await waitFor(() => api.getController()?.getScreen()?.kind === 'finish');
-    assert.match(api.webviewPanel.getHtmlForTests() ?? '', /tutoriais-summary/);
+    await waitFor(() => api.webviewPanel.getHtmlForTests()?.includes('tutoriais-summary') ?? false);
+    assert.strictEqual(api.getController()?.getScreen()?.kind, 'finish');
   });
 
   it('clique direto numa etapa (sem play) abre a etapa sem marcar conclusao (CA-3)', async () => {
