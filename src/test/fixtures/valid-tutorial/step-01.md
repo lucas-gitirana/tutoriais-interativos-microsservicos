@@ -8,4 +8,10 @@ Abra `src/order-service/app.py` e divida o módulo em dois:
 O endpoint HTTP deve delegar para o módulo correto conforme o verbo:
 `POST`/`PUT`/`DELETE` → `commands`, `GET` → `queries`.
 
+Confira se os containers do laboratório estão de pé:
+
+```bash
+docker ps
+```
+
 Quando terminar, rode a verificação da etapa.

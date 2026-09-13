@@ -15,6 +15,16 @@ function copySchema() {
   fs.copyFileSync(src, path.join(destDir, 'tutorial.schema.json'));
 }
 
+/** Copia os assets estáticos do webview (CSS/JS) para dist/, referenciados por TutorialWebviewPanel. */
+function copyWebviewMedia() {
+  const src = path.join(__dirname, 'src', 'webview', 'media');
+  const destDir = path.join(__dirname, 'dist', 'webview', 'media');
+  fs.mkdirSync(destDir, { recursive: true });
+  for (const file of fs.readdirSync(src)) {
+    fs.copyFileSync(path.join(src, file), path.join(destDir, file));
+  }
+}
+
 /** @type {import('esbuild').BuildOptions} */
 const options = {
   entryPoints: ['src/extension.ts'],
@@ -34,6 +44,7 @@ const options = {
 
 async function main() {
   copySchema();
+  copyWebviewMedia();
   if (watch) {
     const ctx = await esbuild.context(options);
     await ctx.watch();

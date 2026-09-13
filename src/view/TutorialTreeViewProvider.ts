@@ -1,9 +1,17 @@
 import * as vscode from 'vscode';
+import { StepStatus } from '../controller/types';
 import { LoadResult } from '../loading/types';
 
 export type TutorialNode =
   | { kind: 'root'; label: string }
-  | { kind: 'step'; label: string; index: number; hasVerify: boolean; points?: number }
+  | {
+      kind: 'step';
+      label: string;
+      index: number;
+      hasVerify: boolean;
+      points?: number;
+      status: StepStatus;
+    }
   | { kind: 'invalid'; label: string; indexUri: vscode.Uri };
 
 /**
@@ -14,17 +22,26 @@ export type TutorialNode =
  * - `ok`      -> no raiz com o titulo + um filho por etapa, na ordem do array.
  *
  * Cada etapa indica se tem avaliacao automatica vinculada (`verify`) e sua
- * pontuacao (`points`) — pos-condicao da US02. Sem icone de status de execucao
- * por etapa — isso e UC03.
+ * pontuacao (`points`) na `description` (US02), e o **icone** reflete o
+ * **status de execucao** da etapa (US03, CA-4: pendente/concluida) — clicar
+ * numa etapa abre a etapa selecionada (CA-3, `tutoriais.abrirEtapa`).
  */
 export class TutorialTreeViewProvider implements vscode.TreeDataProvider<TutorialNode> {
   private readonly changeEmitter = new vscode.EventEmitter<TutorialNode | undefined>();
   readonly onDidChangeTreeData = this.changeEmitter.event;
 
   private current: LoadResult = { status: 'none' };
+  private statuses: ReadonlyMap<number, StepStatus> = new Map();
 
   refresh(result: LoadResult): void {
     this.current = result;
+    this.statuses = new Map();
+    this.changeEmitter.fire(undefined);
+  }
+
+  /** Atualiza o status de execucao das etapas (CA-4), sem recarregar o tutorial. */
+  updateStatuses(statuses: ReadonlyMap<number, StepStatus>): void {
+    this.statuses = statuses;
     this.changeEmitter.fire(undefined);
   }
 
@@ -54,13 +71,16 @@ export class TutorialTreeViewProvider implements vscode.TreeDataProvider<Tutoria
           partes.push(`${node.points} pts`);
         }
         item.description = partes.join(' • ');
-        item.iconPath = new vscode.ThemeIcon(
-          node.hasVerify ? 'checklist' : 'circle-outline'
-        );
-        item.tooltip = node.hasVerify
-          ? `Etapa ${node.index + 1} — avaliação automática vinculada` +
-            (node.points !== undefined ? ` (${node.points} pts)` : '')
-          : `Etapa ${node.index + 1} — sem avaliação automática`;
+        const concluida = node.status === StepStatus.COMPLETED;
+        item.iconPath = new vscode.ThemeIcon(concluida ? 'check' : 'circle-outline');
+        item.tooltip = concluida
+          ? `Etapa ${node.index + 1} — concluída`
+          : `Etapa ${node.index + 1} — pendente`;
+        item.command = {
+          command: 'tutoriais.abrirEtapa',
+          title: 'Abrir etapa',
+          arguments: [node.index]
+        };
         return item;
       }
       case 'invalid': {
@@ -90,7 +110,8 @@ export class TutorialTreeViewProvider implements vscode.TreeDataProvider<Tutoria
         label: step.title,
         index,
         hasVerify: typeof step.verify === 'string' && step.verify.length > 0,
-        points: typeof step.points === 'number' ? step.points : undefined
+        points: typeof step.points === 'number' ? step.points : undefined,
+        status: this.statuses.get(index) ?? StepStatus.PENDING
       }));
     }
     return [];

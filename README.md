@@ -5,13 +5,14 @@ interativos definidos em um arquivo `index.json`, para a plataforma de tutoriais
 sobre padrões de microsserviços e observabilidade (TCC de Engenharia de Software —
 UDESC).
 
-Reúne as entregas da **US01 – Criar tutorial com base em arquivo JSON** (UC01) e
-da **US02 – Criar avaliações automáticas** (UC02). Cobre a etapa de
-**autoria/validação**: ao abrir um repositório com um `index.json` válido, o
-tutorial aparece numa aba própria na Activity Bar com o título, a lista ordenada
-de etapas e, em cada etapa, a indicação da avaliação automática vinculada e da
-pontuação. Se o arquivo ou algum script de verificação estiver incorreto, a
-extensão mostra um aviso e aponta o erro no painel _Problems_.
+Reúne as entregas da **US01 – Criar tutorial com base em arquivo JSON** (UC01),
+da **US02 – Criar avaliações automáticas** (UC02) e da **US03 – Executar
+tutorial do repositório** (UC03). Cobre autoria/validação (ao abrir um
+repositório com um `index.json` válido, o tutorial aparece numa aba própria na
+Activity Bar com o título, a lista ordenada de etapas e a avaliação vinculada a
+cada uma) **e** execução: o professor/aluno navega pelas etapas num painel
+próprio, com arquivos e comandos de terminal abertos automaticamente quando a
+etapa pede.
 
 ## O que já funciona (US01)
 
@@ -33,18 +34,33 @@ extensão mostra um aviso e aponta o erro no painel _Problems_.
 | RF10 | A avaliação vinculada aparece no rótulo da etapa na TreeView. |
 | RF14 | `points` é validado (inteiro ≥ 0) e a extensão avisa quando `verify` e `points` não estão coerentes (um sem o outro). |
 
+## O que já funciona (US03)
+
+| Critério de aceitação | Comportamento |
+| --- | --- |
+| CA-1 | A aba **Tutoriais Interativos** já lista o tutorial e as etapas em sequência (herdado de US01/US02). |
+| CA-2 | Botão **Executar tutorial** (▶) abre a tela de introdução num painel próprio. |
+| CA-3 | Clicar em qualquer etapa da árvore abre aquela etapa diretamente no painel. |
+| CA-4 | Avançar uma etapa marca-a com ícone de ✓ (check) na árvore. |
+| CA-5 | Concluir a última etapa abre a tela de finalização, com o resumo das etapas. |
+| CA-6 | Etapa com `file`/`line` ⇒ o arquivo abre num editor ao lado, na linha indicada. |
+| CA-7 | Blocos de código ` ```bash `/` ```sh `/` ```shell ` no markdown da etapa ganham um botão "▶ Executar" que roda o comando no terminal integrado. |
+| RF09 | O `background` de `intro`/`finish`, se houver, roda automaticamente no terminal ao abrir a tela (sem precisar clicar). |
+
+Interromper a execução em andamento (fechar a janela da etapa, remover os
+ícones de status) é uma história separada da mesma UC03 (**US04**), ainda não
+implementada. A avaliação automática de fato (rodar o `verify`, mostrar
+sucesso/falha, somar pontos) é **UC04**.
+
 ## O que **ainda não** funciona (próximas histórias)
 
-- Executar as etapas, abrir arquivos/linha e rodar comandos no terminal — **UC03**.
+- Interromper a execução do tutorial em andamento — **US04** (mesma UC03).
 - **Executar** o script de verificação, mostrar sucesso/falha e a solução esperada — **UC04**.
-- Somar a pontuação e mostrar a nota final e o resumo de etapas — **UC04** (RF15/RF16).
-- Provisionar o ambiente a partir de `backend.imageid` (Docker) — execução (UC03).
+- Somar a pontuação e mostrar a nota final e o resumo de etapas concluídas/falhas — **UC04** (RF15/RF16).
+- Provisionar o ambiente a partir de `backend.imageid` (Docker) — fora do escopo mapeado (ver plano da US03).
 - Catálogo com múltiplos tutoriais e tela de escolha do projeto — **RF01**.
 - Análise _semântica profunda_ do que o script verifica (a US02 checa **formato e
   sintaxe**, não a lógica de verificação; não roda `shellcheck`).
-
-O comando **Executar tutorial** aparece quando há um tutorial válido, mas por ora
-apenas exibe um aviso de que a execução chega no UC03.
 
 ---
 

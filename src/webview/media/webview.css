@@ -1,0 +1,85 @@
+body {
+  font-family: var(--vscode-font-family);
+  color: var(--vscode-foreground);
+  padding: 0 24px 24px;
+  line-height: 1.5;
+}
+
+h1 {
+  border-bottom: 1px solid var(--vscode-panel-border);
+  padding-bottom: 8px;
+}
+
+.tutoriais-content pre {
+  background: var(--vscode-textCodeBlock-background);
+  padding: 8px 12px;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.tutoriais-content code {
+  font-family: var(--vscode-editor-font-family);
+}
+
+.tutoriais-cmd {
+  position: relative;
+  margin: 12px 0;
+}
+
+.tutoriais-cmd-run {
+  display: inline-block;
+  margin-top: 4px;
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none;
+  padding: 4px 10px;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.tutoriais-cmd-run:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.tutoriais-nav {
+  margin-top: 24px;
+  display: flex;
+  gap: 8px;
+}
+
+.tutoriais-nav button {
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  border: none;
+  padding: 6px 14px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.tutoriais-nav button.primary {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.tutoriais-nav button:hover {
+  opacity: 0.9;
+}
+
+.tutoriais-summary {
+  list-style: none;
+  padding: 0;
+  margin-top: 16px;
+}
+
+.tutoriais-summary li {
+  padding: 4px 0;
+}
+
+.tutoriais-summary li.done {
+  color: var(--vscode-charts-green, var(--vscode-foreground));
+}
+
+.tutoriais-summary li.pending {
+  color: var(--vscode-descriptionForeground);
+}
