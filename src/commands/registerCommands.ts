@@ -3,24 +3,34 @@ import * as vscode from 'vscode';
 export interface CommandDeps {
   /** Dispara uma revalidacao manual do tutorial. */
   revalidate: () => Promise<void>;
+  /** Abre a tela de introducao da execucao em curso (CA-2). */
+  iniciarExecucao: () => void;
+  /** Abre a etapa `index` diretamente, iniciando a execucao se necessario (CA-3). */
+  abrirEtapa: (index: number) => void;
 }
 
 /**
  * Registra os comandos da extensao:
  *
- * - `tutoriais.executar` — *stub* nesta historia; a execucao real e UC03.
+ * - `tutoriais.executar` — abre a tela de introducao do tutorial (US03 CA-2).
  * - `tutoriais.revalidar` — re-executa o `TutorialLoader` sob demanda.
+ * - `tutoriais.abrirEtapa` — clique numa etapa da TreeView (US03 CA-3).
  */
 export function registerCommands(deps: CommandDeps): vscode.Disposable {
   const executar = vscode.commands.registerCommand('tutoriais.executar', () => {
-    void vscode.window.showInformationMessage(
-      'Execucao do tutorial sera implementada em UC03.'
-    );
+    deps.iniciarExecucao();
   });
 
   const revalidar = vscode.commands.registerCommand('tutoriais.revalidar', async () => {
     await deps.revalidate();
   });
 
-  return vscode.Disposable.from(executar, revalidar);
+  const abrirEtapa = vscode.commands.registerCommand(
+    'tutoriais.abrirEtapa',
+    (index: number) => {
+      deps.abrirEtapa(index);
+    }
+  );
+
+  return vscode.Disposable.from(executar, revalidar, abrirEtapa);
 }
