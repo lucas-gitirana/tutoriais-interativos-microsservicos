@@ -75,12 +75,17 @@ export async function activate(
   const tutorialDirOf = (result: LoadResult): vscode.Uri | undefined =>
     result.status === 'ok' ? dirOf(result.indexUri) : undefined;
 
+  const setEmExecucao = (value: boolean): void => {
+    void vscode.commands.executeCommand('setContext', 'tutoriais.emExecucao', value);
+  };
+
   const disposeExecution = (): void => {
     controllerSub?.dispose();
     controllerSub = undefined;
     controller = undefined;
     stepExecutor = undefined;
     lastVerification.clear();
+    setEmExecucao(false);
     webviewPanel.close();
   };
 
@@ -160,6 +165,7 @@ export async function activate(
     controller = new TutorialController(lastResult.tutorial.details.steps.length, hasVerify);
     controllerSub = controller.onDidChange((state) => {
       treeProvider.updateStatuses(state.statuses);
+      setEmExecucao(state.screen !== undefined);
       void renderScreen();
     });
     return controller;
@@ -197,7 +203,27 @@ export async function activate(
       terminalService.runCommand(msg.command);
     } else if (msg.type === 'verify') {
       await runVerification();
+    } else if (msg.type === 'stop') {
+      await interromperTutorial();
     }
+  };
+
+  /** Interrompe a execucao (US06) apos confirmacao: zera o progresso e fecha o painel. */
+  const interromperTutorial = async (): Promise<void> => {
+    if (!controller) {
+      return;
+    }
+    const escolha = await vscode.window.showWarningMessage(
+      'Interromper a execução do tutorial? O progresso desta execução será perdido.',
+      { modal: true },
+      'Interromper'
+    );
+    if (escolha !== 'Interromper') {
+      return;
+    }
+    lastVerification.clear();
+    controller.stop();
+    webviewPanel.close();
   };
 
   /** Executa a verificacao automatica da etapa atual (CA-1/CA-2/CA-4 da US04). */
@@ -273,7 +299,8 @@ export async function activate(
         await reloadAndApply();
       },
       iniciarExecucao,
-      abrirEtapa
+      abrirEtapa,
+      interromperTutorial
     }),
     { dispose: disposeExecution }
   );

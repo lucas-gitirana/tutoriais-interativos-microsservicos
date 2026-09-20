@@ -6,7 +6,8 @@ export type WebviewMessage =
   | { type: 'next' }
   | { type: 'previous' }
   | { type: 'runCommand'; command: string }
-  | { type: 'verify' };
+  | { type: 'verify' }
+  | { type: 'stop' };
 
 /** Ultimo resultado de verificacao conhecido da etapa (US04, CA-2/CA-4). */
 export interface StepVerificationView {
@@ -90,6 +91,7 @@ export class TutorialWebviewPanel implements vscode.Disposable {
       `<article class="tutoriais-content">${html}</article>
        <footer class="tutoriais-nav">
          <button id="btn-next" class="primary">Começar</button>
+         <button id="btn-stop">Parar tutorial</button>
        </footer>`
     );
   }
@@ -103,6 +105,7 @@ export class TutorialWebviewPanel implements vscode.Disposable {
        <footer class="tutoriais-nav">
          ${data.index > 0 ? '<button id="btn-previous">Voltar</button>' : ''}
          <button id="btn-next" class="primary">${isLast ? 'Concluir tutorial' : 'Avançar'}</button>
+         <button id="btn-stop">Parar tutorial</button>
        </footer>`
     );
   }

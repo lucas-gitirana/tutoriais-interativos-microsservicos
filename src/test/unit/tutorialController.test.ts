@@ -222,4 +222,58 @@ describe('TutorialController', () => {
       assert.deepStrictEqual(controller.getScreen(), { kind: 'finish' });
     });
   });
+  describe('stop() (US06)', () => {
+    it('zera a tela atual e os status de todas as etapas', () => {
+      const controller = new TutorialController(3, [true, false, false]);
+      controller.start();
+      controller.goToStep(0);
+      controller.recordVerificationResult(0, { success: false, output: '' });
+      controller.next(); // step 1 (sem verify)
+      controller.next(); // step 1 -> COMPLETED, vai para a etapa 2
+
+      controller.stop();
+
+      assert.strictEqual(controller.getScreen(), undefined);
+      for (let i = 0; i < 3; i++) {
+        assert.strictEqual(controller.statusOf(i), StepStatus.PENDING);
+      }
+      assert.deepStrictEqual(controller.getProgress(), { completed: 0, total: 3 });
+    });
+
+    it('dispara onDidChange com tela indefinida e mapa de status vazio', () => {
+      const controller = new TutorialController(2, noVerify(2));
+      controller.start();
+      controller.next();
+      controller.next();
+      const eventos: Array<{ screen: unknown; size: number }> = [];
+      controller.onDidChange((state) =>
+        eventos.push({ screen: state.screen, size: state.statuses.size })
+      );
+
+      controller.stop();
+
+      assert.deepStrictEqual(eventos, [{ screen: undefined, size: 0 }]);
+    });
+
+    it('nao lanca erro quando chamado antes de start()', () => {
+      const controller = new TutorialController(2, noVerify(2));
+      assert.doesNotThrow(() => controller.stop());
+      assert.strictEqual(controller.getScreen(), undefined);
+    });
+
+    it('permite recomecar da introducao depois de interromper', () => {
+      const controller = new TutorialController(2, noVerify(2));
+      controller.start();
+      controller.next();
+      controller.next(); // step 0 COMPLETED
+      controller.stop();
+
+      controller.start();
+      assert.deepStrictEqual(controller.getScreen(), { kind: 'intro' });
+      assert.strictEqual(controller.statusOf(0), StepStatus.PENDING);
+      controller.next();
+      controller.next();
+      assert.strictEqual(controller.statusOf(0), StepStatus.COMPLETED);
+    });
+  });
 });

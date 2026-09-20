@@ -14,6 +14,10 @@
       vscode.postMessage({ type: 'previous' });
       return;
     }
+    if (target.id === 'btn-stop') {
+      vscode.postMessage({ type: 'stop' });
+      return;
+    }
     if (target.classList.contains('tutoriais-cmd-run')) {
       const encoded = target.getAttribute('data-command-b64');
       if (encoded) {
