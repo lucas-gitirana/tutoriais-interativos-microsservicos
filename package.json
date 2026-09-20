@@ -60,10 +60,21 @@
         "title": "Revalidar tutorial",
         "category": "Tutoriais Interativos",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "tutoriais.interromper",
+        "title": "Interromper tutorial",
+        "category": "Tutoriais Interativos",
+        "icon": "$(debug-stop)"
       }
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "tutoriais.interromper",
+          "when": "view == tutoriaisView && tutoriais.emExecucao",
+          "group": "navigation@0"
+        },
         {
           "command": "tutoriais.revalidar",
           "when": "view == tutoriaisView",
@@ -86,6 +97,10 @@
         {
           "command": "tutoriais.executar",
           "when": "tutoriais.disponivel"
+        },
+        {
+          "command": "tutoriais.interromper",
+          "when": "tutoriais.emExecucao"
         }
       ]
     },

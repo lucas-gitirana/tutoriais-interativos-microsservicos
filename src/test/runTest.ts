@@ -16,7 +16,8 @@ const SCENARIOS: Scenario[] = [
   { name: 'eval-invalid', fixture: 'invalid-verify-not-sh' },
   { name: 'eval-warn', fixture: 'warn-verify-without-points' },
   { name: 'execution', fixture: 'valid-tutorial' },
-  { name: 'evaluation-run', fixture: 'valid-tutorial' }
+  { name: 'evaluation-run', fixture: 'valid-tutorial' },
+  { name: 'interrupt', fixture: 'valid-tutorial' }
 ];
 
 /** `true` se `cmd` existe no PATH. */

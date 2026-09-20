@@ -3,7 +3,7 @@ import { Screen, SimpleEmitter, StepStatus } from './types';
 
 /** Estado publico notificado a cada mudanca de tela/status. */
 export interface ExecutionState {
-  screen: Screen;
+  screen: Screen | undefined;
   statuses: ReadonlyMap<number, StepStatus>;
 }
 
@@ -23,8 +23,7 @@ export interface ExecutionState {
  * previsto no diagrama, para cobrir a CA-3 da US03 (clicar em qualquer etapa
  * da lista abre a etapa selecionada, nao so a sequencial seguinte) —
  * divergencia a registrar em `diagramas.md` apos confirmacao do autor.
- * `stop()` nao e implementado nesta historia (interromper a execucao e a
- * US04, fora do escopo da US03).
+ * Desde a US06, `stop()` encerra a execucao (tela e status zerados) mantendo a instancia viva.
  *
  * Desde a US04: para etapas com `verify` vinculado (`hasVerify[index] === true`), `next()` **nao**
  * marca `COMPLETED` automaticamente — o status dessas etapas so muda via
@@ -46,6 +45,17 @@ export class TutorialController {
   /** Abre a tela de introducao (CA-2). Idempotente: nao reinicia o progresso ja feito. */
   start(): void {
     this.setScreen({ kind: 'intro' });
+  }
+
+  /**
+   * Interrompe a execucao (US06): descarta a tela atual e todos os status de etapa. Nao fecha o
+   * painel nem toca na TreeView — quem escuta `onDidChange` reage ao estado vazio. Um novo
+   * {@link start} recomeca da introducao.
+   */
+  stop(): void {
+    this.screen = undefined;
+    this.statuses.clear();
+    this.changeEmitter.fire({ screen: undefined, statuses: new Map() });
   }
 
   /**

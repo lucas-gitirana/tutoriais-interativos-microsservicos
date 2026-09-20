@@ -7,6 +7,8 @@ export interface CommandDeps {
   iniciarExecucao: () => void;
   /** Abre a etapa `index` diretamente, iniciando a execucao se necessario (CA-3). */
   abrirEtapa: (index: number) => void;
+  /** Interrompe a execucao em curso, apos confirmacao do usuario (US06). */
+  interromperTutorial: () => Promise<void>;
 }
 
 /**
@@ -15,6 +17,7 @@ export interface CommandDeps {
  * - `tutoriais.executar` — abre a tela de introducao do tutorial (US03 CA-2).
  * - `tutoriais.revalidar` — re-executa o `TutorialLoader` sob demanda.
  * - `tutoriais.abrirEtapa` — clique numa etapa da TreeView (US03 CA-3).
+ * - `tutoriais.interromper` — interrompe a execucao em curso (US06).
  */
 export function registerCommands(deps: CommandDeps): vscode.Disposable {
   const executar = vscode.commands.registerCommand('tutoriais.executar', () => {
@@ -32,5 +35,9 @@ export function registerCommands(deps: CommandDeps): vscode.Disposable {
     }
   );
 
-  return vscode.Disposable.from(executar, revalidar, abrirEtapa);
+  const interromper = vscode.commands.registerCommand('tutoriais.interromper', async () => {
+    await deps.interromperTutorial();
+  });
+
+  return vscode.Disposable.from(executar, revalidar, abrirEtapa, interromper);
 }
