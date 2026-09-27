@@ -1,259 +1,106 @@
 # Tutoriais Interativos de Microsserviços
 
-Extensão do Visual Studio Code que **detecta, valida e lista** tutoriais
-interativos definidos em um arquivo `index.json`, para a plataforma de tutoriais
-sobre padrões de microsserviços e observabilidade (TCC de Engenharia de Software —
-UDESC).
+Extensão do VS Code que detecta, valida, lista e executa tutoriais interativos
+sobre padrões de microsserviços e observabilidade, definidos em um arquivo
+`index.json` no repositório do tutorial.
 
-Reúne as entregas da **US01 – Criar tutorial com base em arquivo JSON** (UC01),
-da **US02 – Criar avaliações automáticas** (UC02), da **US03 – Executar
-tutorial do repositório** (UC03) e da **US04 – Executar avaliação automática de
-etapa** (UC04). Cobre autoria/validação (ao abrir um repositório com um
-`index.json` válido, o tutorial aparece numa aba própria na Activity Bar com o
-título, a lista ordenada de etapas e a avaliação vinculada a cada uma),
-execução (o professor/aluno navega pelas etapas num painel próprio, com
-arquivos e comandos de terminal abertos automaticamente quando a etapa pede)
-**e** avaliação automática de fato: rodar o script `verify` de uma etapa,
-indicar sucesso/falha, mostrar o resultado esperado numa falha e calcular a
-nota final ao concluir o tutorial.
+Ao abrir uma pasta com um `index.json` válido, o tutorial aparece na aba
+**Tutoriais Interativos** da Activity Bar, com título e etapas listados. Cada
+etapa pode abrir um arquivo em uma linha específica, oferecer comandos de
+terminal com um clique e ter uma avaliação automática (`verify`) que só roda
+quando o botão **Verificar** é clicado. Alterações no `index.json` ou nos
+arquivos `.md`/`.sh` referenciados revalidam o tutorial ao vivo.
 
-## O que já funciona (US01)
+## Fluxos
 
-| Critério de aceitação | Comportamento |
-| --- | --- |
-| CA-1 | Detecta um arquivo chamado exatamente `index.json` no workspace. |
-| CA-2 | Valida o `index.json` contra o JSON Schema draft-07 do tutorial. |
-| CA-3 | Verifica que os markdown de introdução, etapas e finalização existem. |
-| CA-4 | `index.json` válido ⇒ tutorial listado na TreeView e disponível para execução. |
-| CA-5 | `index.json` inválido ⇒ aviso + diagnósticos com linha/coluna no `index.json`. |
-| — | Revalidação ao vivo: alterações no `index.json` ou nos arquivos `.md`/`.sh` recarregam a listagem sem recarregar a janela. |
+**Carga e revalidação** — descoberta do `index.json` → parse posicional →
+validação por schema → validação de referências e scripts → disponibilização
+na TreeView. O `TutorialWatcher` repete esse fluxo sempre que um arquivo
+relevante muda.
 
-## O que já funciona (US02)
+**Execução e avaliação** — o usuário inicia o tutorial, navega pelas etapas
+(arquivo/terminal abrem automaticamente) e, em etapas com `verify`, clica em
+Verificar para rodar o script de fato e obter nota/status.
 
-| Critério de aceitação | Comportamento |
-| --- | --- |
-| CA-1 | O script de avaliação (`verify`) de cada etapa é validado: extensão `.sh`, shebang bash/sh e sintaxe (`bash -n`, sem executar o script). Violações bloqueiam a disponibilização. |
-| CA-2 | Cada etapa admite **um** `verify` — garantido pelo schema (string única) e reforçado pela detecção de `verify` duplicado. |
-| RF10 | A avaliação vinculada aparece no rótulo da etapa na TreeView. |
-| RF14 | `points` é validado (inteiro ≥ 0) e a extensão avisa quando `verify` e `points` não estão coerentes (um sem o outro). |
+```mermaid
+flowchart TB
+  subgraph W["Watch de arquivos"]
+    direction TB
+    W1["index.json / .md / .sh muda"] --> W2["TutorialWatcher detecta"]
+    W2 --> W3["TutorialLoader recarrega:\nparse -> schema -> referências -> scripts"]
+    W3 --> W4{"Válido?"}
+    W4 -->|sim| W5["TreeView atualizada\n(disponível para execução)"]
+    W4 -->|não| W6["Diagnósticos no index.json\n(erro bloqueia, aviso não)"]
+  end
 
-## O que já funciona (US03)
+  subgraph E["Execução e avaliação"]
+    direction TB
+    E1["Executar tutorial"] --> E2["TutorialController\nabre intro / etapa"]
+    E2 --> E3["Painel mostra etapa\n(arquivo + comandos de terminal)"]
+    E3 --> E4{"Etapa tem verify?"}
+    E4 -->|não| E5["Avançar marca\netapa concluída"]
+    E4 -->|sim| E6["Clique em Verificar\nroda o script (child_process)"]
+    E6 --> E7{"Exit code 0?"}
+    E7 -->|sim| E8["Etapa correta (✓)"]
+    E7 -->|não| E9["Etapa incorreta (✗)\nmostra saída do script"]
+    E5 --> E10["Última etapa concluída"]
+    E8 --> E10
+    E9 -.->|avançar sem verificar| E10
+    E10 --> E11["Tela de finalização:\nnota final + resumo por etapa"]
+  end
 
-| Critério de aceitação | Comportamento |
-| --- | --- |
-| CA-1 | A aba **Tutoriais Interativos** já lista o tutorial e as etapas em sequência (herdado de US01/US02). |
-| CA-2 | Botão **Executar tutorial** (▶) abre a tela de introdução num painel próprio. |
-| CA-3 | Clicar em qualquer etapa da árvore abre aquela etapa diretamente no painel. |
-| CA-4 | Avançar uma etapa marca-a com ícone de ✓ (check) na árvore. |
-| CA-5 | Concluir a última etapa abre a tela de finalização, com o resumo das etapas. |
-| CA-6 | Etapa com `file`/`line` ⇒ o arquivo abre num editor ao lado, na linha indicada. |
-| CA-7 | Blocos de código ` ```bash `/` ```sh `/` ```shell ` no markdown da etapa ganham um botão "▶ Executar" que roda o comando no terminal integrado. |
-| RF09 | O `background` de `intro`/`finish`, se houver, roda automaticamente no terminal ao abrir a tela (sem precisar clicar). |
-
-Interromper a execução em andamento (fechar a janela da etapa, remover os
-ícones de status) continua **fora** do escopo implementado — é uma história
-separada da mesma UC03, ainda não feita.
-
-## O que já funciona (US04)
-
-| Critério de aceitação | Comportamento |
-| --- | --- |
-| US04 CA-1 | Etapa com `verify` vinculado ⇒ botão **Verificar** aparece no painel. |
-| US04 CA-2 | Ao clicar em Verificar, o script roda de verdade e o painel mostra sucesso (✓) ou falha (✗); o ícone da etapa na Activity Bar acompanha (check / erro). |
-| US04 CA-3 | O botão Verificar pode ser clicado quantas vezes forem necessárias — sem limite. |
-| US04 CA-4 | Em caso de falha, o painel mostra o **resultado esperado** (a saída que o próprio script imprimiu). |
-| US05 CA-1 | O script só roda quando o botão Verificar é clicado — nunca automaticamente. |
-| US05 CA-2 | É possível avançar (**Avançar**) sem nunca ter clicado em Verificar; a etapa fica marcada como "não verificada", sem gerar erro. |
-| RF15 | A tela de finalização mostra a **nota final** (soma dos `points` das etapas corretas / soma de todas as etapas com avaliação). |
-| RF16 | A tela de finalização lista cada etapa como correta, incorreta, não verificada ou sem avaliação automática. |
-
-Desde a US04, **etapas com `verify` vinculado só ganham o ícone de check
-quando a verificação automática passa** — avançar sozinho (sem verificar) não
-marca mais a etapa como concluída (diferença em relação ao comportamento da
-US03, que valia só enquanto a avaliação automática ainda não existia). Etapas
-**sem** `verify` continuam sendo marcadas ao avançar, como antes.
-
-## O que **ainda não** funciona (próximas histórias)
-
-- Interromper a execução do tutorial em andamento — história separada da UC03, ainda não implementada.
-- Provisionar o ambiente a partir de `backend.imageid` (Docker) — fora do escopo mapeado (ver plano da US03).
-- Catálogo com múltiplos tutoriais e tela de escolha do projeto — **RF01**.
-- Análise _semântica profunda_ do que o script verifica (a US02 checa **formato e
-  sintaxe**, não a lógica de verificação; não roda `shellcheck`).
-
----
-
-## Como autorar um tutorial
-
-### 1. Nome do arquivo
-
-O arquivo de configuração **precisa se chamar `index.json`** e ficar na raiz do
-repositório do tutorial. Arquivos com outro nome são ignorados. Havendo mais de
-um `index.json` no workspace, a extensão usa o de menor profundidade e registra
-um aviso (um tutorial por workspace nesta versão).
-
-### 2. Caminhos são relativos ao `index.json`
-
-Todos os caminhos citados em `text`, `background`, `verify` e `file.name` são
-resolvidos **a partir do diretório onde está o `index.json`**, sempre com `/`
-como separador (funciona igual em Windows, Linux e GitHub Codespaces).
-
-```
-meu-tutorial/
-├── index.json
-├── intro.md
-├── passos/
-│   ├── passo-01.md
-│   └── verificar-01.sh
-└── fim.md
+  W5 -.-> E1
 ```
 
-No exemplo acima, uma etapa referenciaria `"text": "passos/passo-01.md"`.
+## Formato do `index.json`
 
-### 3. Estrutura do `index.json`
+O arquivo precisa se chamar exatamente `index.json` e ficar na raiz do
+tutorial. Todos os caminhos (`text`, `background`, `verify`, `file.name`) são
+relativos ao diretório do `index.json`, com `/` como separador.
 
 ```jsonc
 {
-  "title": "Implementando o padrão CQRS",          // título exibido
-  "description": "Separe leitura e escrita ...",    // resumo curto
+  "title": "Implementando o padrão CQRS",
+  "description": "Separe leitura e escrita ...",
   "details": {
-    "intro":  { "text": "intro.md" },              // tela de introdução
+    "intro":  { "text": "intro.md" },
     "steps":  [ /* 1 ou mais etapas, na ordem */ ],
-    "finish": { "text": "finish.md" }              // tela de finalização
-  },
-  "backend": { "imageid": "org/imagem:tag" }       // ambiente (usado só na execução)
-}
-```
-
-### 4. Campos
-
-| Campo | Obrigatório | Tipo | Descrição |
-| --- | --- | --- | --- |
-| `title` | sim | string | Título do tutorial exibido na TreeView. |
-| `description` | sim | string | Resumo curto do que o tutorial cobre. |
-| `details` | sim | objeto | Contém `intro`, `steps` e `finish`. |
-| `details.intro` | sim | _textBlock_ | Tela de introdução. |
-| `details.steps` | sim | _step[]_ | Lista ordenada de etapas (**mínimo 1**). |
-| `details.finish` | sim | _textBlock_ | Tela de finalização. |
-| `backend` | sim | objeto | Configuração do ambiente. |
-| `backend.imageid` | sim | string | Identificador da imagem/ambiente a provisionar. |
-
-**_textBlock_** (usado em `intro` e `finish`):
-
-| Campo | Obrigatório | Tipo | Descrição |
-| --- | --- | --- | --- |
-| `text` | sim | string | Caminho para um arquivo **markdown** com o conteúdo. |
-| `background` | não | string | Caminho para um script **shell** executado em segundo plano. |
-
-**_step_** (cada item de `details.steps`):
-
-| Campo | Obrigatório | Tipo | Descrição |
-| --- | --- | --- | --- |
-| `title` | sim | string | Título da etapa (rótulo na TreeView). |
-| `text` | sim | string | Caminho para o **markdown** com as instruções da etapa. |
-| `verify` | não | string | Caminho para o **script shell** de verificação (executado no UC03/UC04). |
-| `file` | não | objeto | Arquivo a destacar junto da etapa: `{ "name": "caminho", "line": 1 }` (`line` ≥ 1). |
-| `points` | não | inteiro ≥ 0 | Pontuação da etapa (usada na avaliação — UC04). |
-
-Regras de validação relevantes (o schema é **estrito**, `additionalProperties: false`):
-
-- propriedades não previstas pelo schema são rejeitadas;
-- `details.steps` precisa ter **pelo menos uma** etapa;
-- `points` e `file.line` são **inteiros**; `file.line` começa em `1`.
-
-### 5. Exemplo mínimo válido
-
-`index.json`:
-
-```json
-{
-  "title": "Meu primeiro tutorial",
-  "description": "Um tutorial mínimo de exemplo.",
-  "details": {
-    "intro": { "text": "intro.md" },
-    "steps": [
-      { "title": "Primeira etapa", "text": "step-01.md" }
-    ],
     "finish": { "text": "finish.md" }
   },
-  "backend": { "imageid": "exemplo/ambiente:latest" }
+  "backend": { "imageid": "org/imagem:tag" }
 }
 ```
 
-Junto dele: `intro.md`, `step-01.md` e `finish.md`. Abra a pasta no VS Code — o
-tutorial aparece na aba **Tutoriais Interativos** da Activity Bar.
+| Campo | Obrigatório | Tipo | Descrição |
+| --- | --- | --- | --- |
+| `title` | sim | string | Título exibido na TreeView. |
+| `description` | sim | string | Resumo curto do tutorial. |
+| `details.intro` / `details.finish` | sim | _textBlock_ | Telas de introdução e finalização. |
+| `details.steps` | sim | _step[]_ | Lista ordenada de etapas (mínimo 1). |
+| `backend.imageid` | sim | string | Identificador do ambiente a provisionar. |
 
-Um exemplo completo (padrão CQRS) está em [`examples/tutorial-cqrs/`](examples/tutorial-cqrs/).
+**_textBlock_**: `text` (markdown, obrigatório) e `background` (script shell
+opcional, roda automaticamente ao abrir a tela).
 
----
+**_step_**: `title` e `text` (obrigatórios); `verify` (script `.sh` opcional,
+avaliação automática da etapa); `file` (opcional, `{ "name", "line" }`, abre o
+arquivo na linha indicada); `points` (inteiro ≥ 0, pontuação da etapa).
 
-## Avaliações automáticas (US02)
+O schema é **estrito** (`additionalProperties: false`): propriedades não
+previstas são rejeitadas, `steps` precisa ter ao menos um item, `points` e
+`file.line` são inteiros e `file.line` começa em `1`.
 
-Cada etapa pode ter **uma** avaliação automática: um script `verify` que confere
-se a etapa foi concluída. A execução do script é responsabilidade do UC03/UC04 —
-aqui a extensão só **valida** o script no momento da autoria.
+Exemplo completo: [`examples/tutorial-cqrs/`](examples/tutorial-cqrs/).
 
-### Vincular a avaliação a uma etapa
+## Convenção do `verify`
 
-```jsonc
-{
-  "title": "Separar comandos de consultas",
-  "text": "step-01.md",
-  "verify": "verify-step-01.sh",   // um único script .sh, relativo ao index.json
-  "points": 10                      // pontuação da etapa (inteiro >= 0)
-}
-```
+`verify` é uma **única** string por etapa apontando para um script `.sh` com
+shebang `bash`/`sh`. Na autoria, a extensão só valida formato e sintaxe
+(`bash -n`, sem executar); na execução, o script roda de verdade e seu exit
+code decide o resultado — `0` é sucesso, qualquer outro valor é falha.
 
-### O que é validado no `verify`
-
-| Regra | Resultado se violada |
-| --- | --- |
-| O caminho termina em **`.sh`** (arquivo bash). | **Erro** — tutorial fica indisponível. |
-| A 1ª linha é um **shebang** `#!/usr/bin/env bash` (ou `#!/bin/sh`). | Ausente ⇒ **aviso**; interpretador diferente de bash/sh ⇒ **erro**. |
-| A **sintaxe** passa em `bash -n` (o script é analisado, **nunca executado**). | **Erro** com a linha reportada pelo `bash`. |
-| `bash` disponível no ambiente. | Indisponível (ex.: Windows sem Git Bash) ⇒ **aviso**; a checagem de sintaxe completa ocorre em Linux/Codespaces. |
-
-As mesmas checagens valem para `background` (setup de `intro`/`finish`), porém
-sempre como **aviso** — `background` não é script de avaliação.
-
-### Uma avaliação por etapa
-
-`verify` é **uma string**: uma lista (`["a.sh", "b.sh"]`) ou uma etapa com a
-propriedade `verify` repetida são rejeitadas.
-
-### Pontuação (`points`)
-
-`points` é um inteiro ≥ 0. A extensão avisa quando `verify` e `points` não andam
-juntos: etapa com `verify` e sem `points`, ou com `points` e sem `verify`. A
-**soma** dos pontos e a **nota final** aparecem na execução (US04).
-
----
-
-## Avaliação automática de etapas (US04)
-
-Numa etapa com `verify` vinculado, o painel do tutorial mostra um botão
-**Verificar**. Ao clicar:
-
-1. O script `verify` da etapa é executado de verdade (não é só uma checagem de
-   sintaxe como na autoria/US02) — em segundo plano, sem abrir no terminal
-   integrado (só uma mensagem fixa de "Executando verificação..." aparece lá,
-   pra dar transparência sem duplicar a execução).
-2. Se o script terminar com código de saída `0`, a etapa é marcada como
-   **correta** (✓) — o ícone na Activity Bar vira um check.
-3. Se terminar com qualquer outro código, a etapa é marcada como **incorreta**
-   (✗) — o ícone vira um símbolo de erro.
-4. O botão pode ser clicado de novo quantas vezes forem necessárias — cada
-   clique roda o script outra vez e atualiza o resultado.
-
-### Convenção: como escrever o "resultado esperado" (CA-4)
-
-Quando a etapa é avaliada como incorreta, o painel mostra ao aluno o que o
-`verify.sh` **imprimiu** (stdout + stderr) como o "resultado esperado". Não há
-nenhum campo novo no `index.json` para isso — é uma convenção de escrita do
-script: **ao falhar, o script deve `echo` uma mensagem explicando o que
-faltou**, antes do `exit` com código diferente de zero. Um script que só falha
-silenciosamente (sem imprimir nada) ainda funciona, mas o aluno só vê uma
-mensagem genérica.
+Para que o aluno veja uma mensagem útil em caso de falha, o script deve
+imprimir a explicação **antes** do `exit` diferente de zero:
 
 ```bash
 #!/usr/bin/env bash
@@ -266,48 +113,32 @@ fi
 echo "Etapa concluída."
 ```
 
-> Evite `set -e` sozinho se o script tiver mais de uma checagem — ele encerra
-> o script no primeiro comando que falhar, **antes** do seu `echo` explicativo
-> rodar. Prefira `if`/`exit` explícitos, como no exemplo acima.
+Evite `set -e` sozinho quando o script tiver mais de uma checagem: ele encerra
+no primeiro comando que falhar, antes do `echo` explicativo rodar. Prefira
+`if`/`exit` explícitos, como acima.
 
-### Nota final e resumo (RF15, RF16)
-
-Ao concluir a última etapa, a tela de finalização mostra:
-
-- **Nota final**: soma dos `points` de todas as etapas cujo `verify` passou,
-  sobre a soma dos `points` de todas as etapas que têm `verify` (etapas sem
-  avaliação automática não entram na conta).
-- Um **resumo por etapa**: correta, incorreta, não verificada (tinha `verify`
-  mas o aluno nunca clicou em Verificar — ver US05 abaixo) ou sem avaliação
-  automática (etapa que nunca teve `verify`).
-
-### Ignorar a avaliação automática (US05)
-
-O script `verify` de uma etapa **nunca** roda sozinho — só quando o aluno
-clica em Verificar. É perfeitamente válido avançar sem verificar: a etapa
-fica marcada como "não verificada" no resumo final, sem gerar nenhum erro.
-
----
+`points` (inteiro ≥ 0) define a pontuação da etapa; a nota final soma os
+pontos das etapas com `verify` aprovado sobre a soma dos pontos de todas as
+etapas avaliáveis. Etapas sem `verify` não entram na nota e são marcadas
+concluídas ao simplesmente avançar.
 
 ## Desenvolvimento
 
 ```bash
 npm install
-npm run build            # bundle esbuild -> dist/extension.js
+npm run build              # esbuild -> dist/extension.js
+npm run watch               # esbuild em modo watch
 npm run lint
-npm test                 # testes unitários (Ajv, parser posicional, referências)
-npm run test:integration # testes de integração (@vscode/test-electron)
-npm run package          # gera o .vsix
+npm test                    # testes unitários (tsc + mocha, sem VS Code)
+npm run test:integration    # @vscode/test-electron (VS Code real)
+npm run package              # gera o .vsix
 ```
 
-Pressione **F5** no VS Code para abrir o _Extension Development Host_ já com o
+Pressione **F5** no VS Code para abrir o _Extension Development Host_ com o
 tutorial de exemplo carregado.
 
-### Rodando os testes de integração
-
-`@vscode/test-electron` baixa um VS Code real e o executa. Em Linux isso exige
-algumas bibliotecas de sistema e um servidor gráfico. Numa máquina headless
-(inclusive WSL) instale, **uma vez**:
+`@vscode/test-electron` baixa um VS Code real; em Linux headless (inclusive
+WSL) instale as dependências gráficas uma vez:
 
 ```bash
 sudo apt-get update && sudo apt-get install -y \
@@ -317,34 +148,9 @@ sudo apt-get update && sudo apt-get install -y \
   libxshmfence1 libpango-1.0-0 libcairo2 libx11-xcb1
 ```
 
-Depois basta `npm run test:integration` — se não houver `DISPLAY`, o runner se
-reexecuta automaticamente sob `xvfb-run`. (Os nomes de pacote acima são de
-Ubuntu 24.04 "noble"; em versões anteriores use `libasound2`, `libgtk-3-0`,
-`libatk1.0-0`, `libatk-bridge2.0-0`, `libcups2`, `libatspi2.0-0` sem o sufixo
-`t64`.) No CI isso já é feito pelo workflow.
-
-### Arquitetura (alinhada ao Diagrama de Classes do TCC)
-
-| Módulo | Papel |
-| --- | --- |
-| `src/model/tutorial.ts` | Interfaces do modelo (`TutorialDefinition`, `TutorialDetails`, `TextBlock`, `Step`, `FileTarget`, `BackendConfig`). |
-| `src/loading/TutorialSchemaValidator.ts` | Validação contra o JSON Schema draft-07 (Ajv). |
-| `src/loading/JsonSource.ts` | Parser posicional (`jsonc-parser`): mapeia caminho → linha/coluna. |
-| `src/loading/ReferenceValidator.ts` | Existência dos `.md` / `.sh` / `file.name` (parte de existência do `VerifyScriptValidator`). |
-| `src/loading/VerifyScriptValidator.ts` | Formato e validade do `verify`: `.sh`, shebang, `bash -n` (US02). |
-| `src/loading/EvaluationChecks.ts` | Coerência `verify`↔`points` (RF14), `verify` único por etapa (CA-2) e orquestração da camada US02. |
-| `src/fs/ScriptReader.ts` / `BashSyntaxChecker.ts` | Leitura do conteúdo do script e checagem de sintaxe (`bash -n`), com implementações Node e VS Code. |
-| `src/loading/TutorialLoader.ts` | Orquestra descoberta → parse → schema → referências → scripts de avaliação → `LoadResult`. |
-| `src/fs/workspace.ts` / `TutorialWatcher.ts` | Descoberta do `index.json`, resolução de caminhos e revalidação ao vivo. |
-| `src/diagnostics/JsonDiagnostics.ts` | `DiagnosticCollection` do `index.json`. |
-| `src/view/TutorialTreeViewProvider.ts` | TreeView com título + etapas (com avaliação vinculada, pontuação e status de execução/verificação). |
-| `src/controller/TutorialController.ts` | Máquina de estados da execução (US03) — `start`/`next`/`previous`/`goToStep`; desde a US04, `recordVerificationResult` marca etapas com `verify` como corretas/incorretas. |
-| `src/execution/*` | `FileNavigationService`, `TerminalService`, `StepExecutor` — abertura de arquivo/linha e comandos de terminal (US03). |
-| `src/webview/TutorialWebviewPanel.ts` | Painel único da execução: introdução, etapa (com botão Verificar) e finalização (nota + resumo). |
-| `src/evaluation/VerifyScriptExecutor.ts` / `NodeVerifyScriptExecutor.ts` | Execução real (headless, `child_process`) do script `verify` de uma etapa — captura exit code e saída (US04). |
-| `src/evaluation/EvaluationRunner.ts` | Orquestra a verificação de uma etapa: resolve o caminho do script, roda o executor e produz o `VerificationResult` (US04). |
-| `src/evaluation/ScoreTracker.ts` | Calcula a nota final e o resumo por etapa a partir do status de cada uma (RF15/RF16). |
-| `src/extension.ts` | Ativação e fio condutor. |
+(nomes de pacote do Ubuntu 24.04 "noble"; em versões anteriores use os mesmos
+nomes sem o sufixo `t64`.) Sem `DISPLAY`, `npm run test:integration` se
+reexecuta sob `xvfb-run` automaticamente — o CI já faz isso.
 
 ## Licença
 
