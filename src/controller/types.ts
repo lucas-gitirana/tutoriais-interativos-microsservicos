@@ -1,17 +1,9 @@
-/**
- * Estado de execucao de uma etapa do tutorial. Reaproveita o enum `StepStatus`
- * do Diagrama de Classes (`.claude/diagrams/diagramas.md`); esta historia
- * (US03) so transita `PENDING -> COMPLETED` (o usuario avancou pela etapa).
- * `FAILED` fica reservado para quando a avaliacao automatica real do `verify`
- * rodar (UC04, RF11-RF13).
- */
 export enum StepStatus {
   PENDING = 'PENDING',
   COMPLETED = 'COMPLETED',
   FAILED = 'FAILED'
 }
 
-/** Tela atualmente exibida no `TutorialWebviewPanel`. */
 export type Screen = { kind: 'intro' } | { kind: 'step'; index: number } | { kind: 'finish' };
 
 type Listener<T> = (value: T) => void;

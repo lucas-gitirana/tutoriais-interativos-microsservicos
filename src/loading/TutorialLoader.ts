@@ -11,10 +11,8 @@ import { TutorialSchemaValidator } from './TutorialSchemaValidator';
 import { VerifyScriptValidator } from './VerifyScriptValidator';
 import { LoadResult, ValidationError } from './types';
 
-/** Fabrica um {@link ReferenceValidator} para um diretorio de tutorial. */
 export type ReferenceValidatorFactory = (tutorialDir: vscode.Uri) => ReferenceValidator;
 
-/** Fabrica um {@link VerifyScriptValidator} para um diretorio de tutorial. */
 export type VerifyScriptValidatorFactory = (tutorialDir: vscode.Uri) => VerifyScriptValidator;
 
 const defaultReferenceValidatorFactory: ReferenceValidatorFactory = (dir) =>
@@ -28,10 +26,10 @@ const defaultVerifyScriptValidatorFactory: VerifyScriptValidatorFactory = (dir) 
  *
  * 1. localiza o `index.json` (senao: `status: 'none'`);
  * 2. le os bytes e faz o parse posicional;
- * 3. valida contra o JSON Schema (UC01 CA-2);
- * 4. se valido, valida a existencia das referencias (UC01 CA-3);
+ * 3. valida contra o JSON Schema;
+ * 4. se valido, valida a existencia das referencias;
  * 5. se as referencias existem, valida os scripts de avaliacao — `.sh`, shebang,
- *    sintaxe — e a coerencia de `points` (UC02 CA-1/CA-2, RF14);
+ *    sintaxe — e a coerencia de `points`;
  * 6. consolida o {@link LoadResult} (erros bloqueiam; avisos acompanham o `ok`).
  */
 export class TutorialLoader {

@@ -3,14 +3,6 @@ import addFormats from 'ajv-formats';
 import { error, ValidationError, ValidationResult } from './types';
 import { loadTutorialSchema } from './schema';
 
-/**
- * Valida um objeto JSON contra o JSON Schema draft-07 de `index.json` (UC01).
- *
- * O schema e compilado uma unica vez no construtor. Cada erro do Ajv e
- * convertido para um {@link ValidationError} com `path` no estilo JSON Pointer
- * e mensagem legivel em portugues (Brasil). O mapeamento posicional (linha/
- * coluna) e responsabilidade do chamador, a partir do `path`.
- */
 export class TutorialSchemaValidator {
   private readonly validateFn: ValidateFunction;
 

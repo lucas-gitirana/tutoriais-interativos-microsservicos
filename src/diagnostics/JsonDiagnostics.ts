@@ -5,7 +5,7 @@ const SOURCE = 'Tutoriais Interativos';
 
 /**
  * Encapsula a `DiagnosticCollection` do `index.json`, convertendo cada
- * {@link ValidationError} num `vscode.Diagnostic` posicionado (CA-5).
+ * {@link ValidationError} num `vscode.Diagnostic` posicionado.
  */
 export class JsonDiagnostics implements vscode.Disposable {
   private readonly collection: vscode.DiagnosticCollection;
@@ -13,8 +13,7 @@ export class JsonDiagnostics implements vscode.Disposable {
   constructor() {
     this.collection = vscode.languages.createDiagnosticCollection('tutoriais');
   }
-
-  /** Publica os problemas no `index.json` informado, substituindo os anteriores. */
+  
   publish(indexUri: vscode.Uri, errors: ValidationError[]): void {
     if (errors.length === 0) {
       this.collection.delete(indexUri);
@@ -22,8 +21,7 @@ export class JsonDiagnostics implements vscode.Disposable {
     }
     this.collection.set(indexUri, errors.map(toDiagnostic));
   }
-
-  /** Limpa todos os diagnosticos (tutorial valido ou ausente). */
+  
   clear(): void {
     this.collection.clear();
   }

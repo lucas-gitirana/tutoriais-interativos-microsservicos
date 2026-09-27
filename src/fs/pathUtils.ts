@@ -1,15 +1,7 @@
 /**
- * Utilitarios puros de caminho (sem dependencia do modulo `vscode`), para permitir
- * testes unitarios fora do Extension Host.
- */
-
-/**
  * Quebra um caminho relativo (citado no `index.json`) em segmentos, ignorando
  * segmentos vazios e `.`. Mantem `..` para que a resolucao cross-platform seja
  * feita por `Uri.joinPath`.
- *
- * Sempre trata `/` como separador — os caminhos do `index.json` sao POSIX,
- * independentemente do sistema operacional (RNF06).
  */
 export function splitRelativeSegments(relativePath: string): string[] {
   return relativePath
@@ -18,7 +10,6 @@ export function splitRelativeSegments(relativePath: string): string[] {
     .filter((seg) => seg.length > 0 && seg !== '.');
 }
 
-/** Profundidade de um caminho POSIX (numero de separadores). */
 export function depthOf(posixPath: string): number {
   const normalized = posixPath.replace(/\\/g, '/').replace(/^\/+/, '');
   if (normalized.length === 0) {

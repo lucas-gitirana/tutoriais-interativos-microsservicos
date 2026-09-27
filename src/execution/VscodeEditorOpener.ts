@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import { resolveRelative } from '../fs/workspace';
 import { EditorOpener } from './FileNavigationService';
 
-/** {@link EditorOpener} real, sobre `vscode.window.showTextDocument`. */
 export class VscodeEditorOpener implements EditorOpener {
   constructor(private readonly tutorialDir: vscode.Uri) {}
 

@@ -31,7 +31,6 @@ export class TutorialWatcher implements vscode.Disposable {
     this.indexWatcher.onDidDelete(() => this.schedule());
   }
 
-  /** Recarrega imediatamente e re-configura o watcher de conteudo (sem emitir evento). */
   async reloadNow(): Promise<LoadResult> {
     const result = await this.loader.loadFromWorkspace();
     this.rewireReferenceWatcher(result);

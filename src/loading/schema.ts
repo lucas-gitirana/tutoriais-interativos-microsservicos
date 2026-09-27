@@ -1,13 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-/**
- * Localiza e carrega o `schema/tutorial.schema.json` versionado.
- *
- * Procura o arquivo subindo a partir do diretorio deste modulo, cobrindo tanto o
- * bundle empacotado (`dist/` -> `dist/schema/` ou `<ext>/schema/`) quanto os
- * testes compilados (`out/loading/` -> `<repo>/schema/`).
- */
 export function loadTutorialSchema(): Record<string, unknown> {
   let dir = __dirname;
   for (let i = 0; i < 6; i++) {

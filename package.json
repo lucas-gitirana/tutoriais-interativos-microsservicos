@@ -1,7 +1,7 @@
 {
   "name": "tutoriais-interativos-microsservicos",
   "displayName": "Tutoriais Interativos de Microsserviços",
-  "description": "Detecta, valida e lista tutoriais interativos definidos em index.json (US01 / UC01).",
+  "description": "Detecta, valida, lista e executa tutoriais interativos de desenvolvimento de microsserviços definidos em index.json",
   "version": "0.1.0",
   "publisher": "lucas-gitirana",
   "license": "MIT",

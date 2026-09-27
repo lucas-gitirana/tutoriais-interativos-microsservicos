@@ -29,26 +29,19 @@ export async function findIndexJson(): Promise<vscode.Uri | undefined> {
   return choice.chosen ? byPath.get(choice.chosen) : matches[0];
 }
 
-/** Caminho do `uri` relativo a raiz do workspace, em formato POSIX. */
 function relativeToWorkspace(uri: vscode.Uri): string {
   const rel = vscode.workspace.asRelativePath(uri, false);
   return rel.replace(/\\/g, '/');
 }
 
-/**
- * Resolve um caminho citado no `index.json` (sempre relativo ao diretorio do
- * `index.json`) para um `Uri`, de forma cross-platform.
- */
 export function resolveRelative(tutorialDir: vscode.Uri, relativePath: string): vscode.Uri {
   return vscode.Uri.joinPath(tutorialDir, ...splitRelativeSegments(relativePath));
 }
 
-/** Diretorio que contem o `index.json`. */
 export function dirOf(indexUri: vscode.Uri): vscode.Uri {
   return vscode.Uri.joinPath(indexUri, '..');
 }
 
-/** Verifica a existencia de um arquivo/diretorio via `workspace.fs.stat`. */
 export async function fileExists(uri: vscode.Uri): Promise<boolean> {
   try {
     await vscode.workspace.fs.stat(uri);
