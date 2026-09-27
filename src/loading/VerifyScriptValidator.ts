@@ -9,20 +9,16 @@ const BASH_SHEBANG = /^#!.*\b(?:bash|sh)\b/;
 
 /**
  * Valida o **formato e a validade** do script de avaliacao (`verify`) de uma
- * etapa (UC02, criterio "extensao valida se o script e valido"):
+ * etapa:
  *
  * - o caminho deve terminar em `.sh` (CA-1) — erro;
  * - a 1a linha deve ser um shebang bash/sh — ausencia e aviso; interpretador
  *   diferente de bash/sh e erro;
  * - `bash -n` (analise sintatica, **sem executar**) deve passar — erro se falhar;
- *   se `bash` nao estiver disponivel, apenas aviso (RNF06).
+ *   se `bash` nao estiver disponivel, apenas aviso.
  *
  * `background` (setup de `intro`/`finish`) nao e script de avaliacao: as mesmas
  * checagens sao aplicadas, porem sempre com severidade `warning`.
- *
- * Corresponde a classe `VerifyScriptValidator` do Diagrama de Classes; o retorno
- * e `Promise<ValidationError[]>` (lista vazia => valido) para carregar mensagens
- * e posicoes dos diagnosticos.
  */
 export class VerifyScriptValidator {
   constructor(
@@ -30,7 +26,6 @@ export class VerifyScriptValidator {
     private readonly bash: BashSyntaxChecker
   ) {}
 
-  /** Valida `step.verify`. Sem `verify` => `[]`. */
   async validate(step: Step, pointer: string, source?: JsonSource): Promise<ValidationError[]> {
     if (!step.verify) {
       return [];
@@ -38,7 +33,6 @@ export class VerifyScriptValidator {
     return this.inspect(step.verify, pointer, 'error', source);
   }
 
-  /** Valida `block.background` (sempre como aviso). Sem `background` => `[]`. */
   async validateBackground(
     block: TextBlock | undefined,
     pointer: string,

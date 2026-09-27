@@ -4,9 +4,7 @@ import { JsonSource } from './JsonSource';
 import { error, ValidationError, warning } from './types';
 
 interface Ref {
-  /** Caminho citado no `index.json`. */
   value: string;
-  /** Ponteiro JSON para diagnostico posicional. */
   pointer: string;
   kind: 'markdown' | 'script' | 'fileTarget';
 }
@@ -17,9 +15,6 @@ interface Ref {
  * - markdown de `intro` / `finish` / cada `steps[i].text`  -> obrigatorio (error)
  * - scripts `intro.background` / `finish.background` / `steps[i].verify` -> obrigatorio se presente (error)
  * - `steps[i].file.name` -> se presente, apenas aviso (warning) — nao bloqueia a disponibilizacao
- *
- * Cobre a parte de *existencia* do `VerifyScriptValidator` do Diagrama de Classes.
- * A validacao de conteudo/semantica dos scripts pertence a UC02.
  */
 export class ReferenceValidator {
   constructor(private readonly probe: FileProbe) {}

@@ -1,19 +1,11 @@
 import { spawn } from 'node:child_process';
 
-/** Resultado da checagem de sintaxe de um script bash. */
 export interface BashSyntaxCheckResult {
-  /** `false` quando `bash` nao esta disponivel no PATH (ex.: Windows sem Git Bash). */
   disponivel: boolean;
-  /** `true` quando `bash -n` terminou sem erro de sintaxe. */
   ok: boolean;
-  /** Primeira linha util do `stderr` do `bash -n`, quando `ok` e `false`. */
   mensagem?: string;
 }
 
-/**
- * Checa a sintaxe de um script bash **sem executa-lo**. A execucao real dos
- * scripts de verificacao pertence a UC04.
- */
 export interface BashSyntaxChecker {
   check(conteudo: string): Promise<BashSyntaxCheckResult>;
 }
@@ -66,8 +58,6 @@ export class NodeBashSyntaxChecker implements BashSyntaxChecker {
         );
       });
 
-      // EPIPE se o bash fechar a entrada antes de consumi-la — o evento 'close'
-      // ja carrega o resultado.
       child.stdin?.on('error', () => undefined);
       child.stdin?.end(conteudo);
     });

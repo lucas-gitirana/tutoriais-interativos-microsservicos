@@ -20,12 +20,6 @@ export type TutorialNode =
  * - `none`    -> sem itens (o *welcome content* aparece);
  * - `invalid` -> um item "Tutorial invalido" que abre o `index.json`;
  * - `ok`      -> no raiz com o titulo + um filho por etapa, na ordem do array.
- *
- * Cada etapa indica se tem avaliacao automatica vinculada (`verify`) e sua
- * pontuacao (`points`) na `description` (US02), e o **icone** reflete o
- * **status de execucao/verificacao** da etapa (pendente/concluida/incorreta —
- * US03 CA-4 e US04 CA-2) — clicar
- * numa etapa abre a etapa selecionada (CA-3, `tutoriais.abrirEtapa`).
  */
 export class TutorialTreeViewProvider implements vscode.TreeDataProvider<TutorialNode> {
   private readonly changeEmitter = new vscode.EventEmitter<TutorialNode | undefined>();
@@ -40,7 +34,6 @@ export class TutorialTreeViewProvider implements vscode.TreeDataProvider<Tutoria
     this.changeEmitter.fire(undefined);
   }
 
-  /** Atualiza o status de execucao das etapas (CA-4), sem recarregar o tutorial. */
   updateStatuses(statuses: ReadonlyMap<number, StepStatus>): void {
     this.statuses = statuses;
     this.changeEmitter.fire(undefined);
@@ -137,7 +130,6 @@ export class TutorialTreeViewProvider implements vscode.TreeDataProvider<Tutoria
   }
 }
 
-/** Icone conforme o status de execucao/verificacao da etapa (US03 CA-4, US04 CA-2). */
 function iconForStatus(status: StepStatus): string {
   switch (status) {
     case StepStatus.COMPLETED:

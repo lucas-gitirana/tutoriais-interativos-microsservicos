@@ -5,7 +5,7 @@ import { VerifyScriptValidator } from './VerifyScriptValidator';
 
 /**
  * Avisos de coerencia entre a avaliacao automatica (`verify`) e a pontuacao
- * (`points`) de cada etapa (RF14). Nao bloqueiam a disponibilizacao do tutorial.
+ * (`points`) de cada etapa. Nao bloqueiam a disponibilizacao do tutorial.
  */
 export function checkPointsCoherence(
   tutorial: TutorialDefinition,
@@ -38,11 +38,6 @@ export function checkPointsCoherence(
   return problemas;
 }
 
-/**
- * Reforco do criterio "cada etapa pode estar vinculada a apenas um script de
- * avaliacao" (UC02 CA-2): erro quando uma etapa declara `verify` mais de uma vez.
- * O caso de `verify` como lista/objeto ja e barrado pelo JSON Schema.
- */
 export function checkSingleVerifyKey(source?: JsonSource): ValidationError[] {
   if (!source) {
     return [];
@@ -56,13 +51,6 @@ export function checkSingleVerifyKey(source?: JsonSource): ValidationError[] {
   );
 }
 
-/**
- * Roda toda a camada de validacao da US02 sobre um tutorial ja aprovado no
- * schema e nas referencias: script `verify` de cada etapa, `background` de
- * `intro`/`finish`, coerencia de `points` e unicidade do `verify`.
- *
- * Puro (sem dependencia de `vscode`) para poder ser testado fora do Extension Host.
- */
 export async function runEvaluationChecks(
   tutorial: TutorialDefinition,
   validator: VerifyScriptValidator,

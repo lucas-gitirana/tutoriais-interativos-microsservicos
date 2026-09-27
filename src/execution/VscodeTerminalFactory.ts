@@ -19,7 +19,6 @@ class VscodeTerminalHandle implements TerminalHandle {
   }
 }
 
-/** {@link TerminalFactory} real, sobre `vscode.window.createTerminal`. */
 export class VscodeTerminalFactory implements TerminalFactory {
   create(): TerminalHandle {
     return new VscodeTerminalHandle(vscode.window.createTerminal({ name: TERMINAL_NAME }));

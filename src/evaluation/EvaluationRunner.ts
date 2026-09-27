@@ -16,20 +16,7 @@ export interface EvaluationRunnerDeps {
 }
 
 /**
- * Roda o script `verify` de uma etapa e produz um {@link VerificationResult} (CA-1, CA-2, CA-4 da
- * US04). Corresponde a classe `EvaluationRunner` do Diagrama de Classes; diverge dele ao usar um
- * {@link VerifyScriptExecutor} headless (em vez de só `TerminalService`) para obter o resultado —
- * ver decisao de arquitetura em `.claude/plano/US04-executar-avaliacoes-automaticas.md`, secao 1.
- *
- * Nao conhece `vscode` — recebe `tutorialDir` como caminho de sistema de arquivos comum (string),
- * nao `vscode.Uri`, para poder ser testado fora do Extension Host (mesmo padrao de
- * `TerminalService`/`FileNavigationService`/`StepExecutor`). A resolucao do caminho relativo de
- * `step.verify` reaproveita `splitRelativeSegments` (`fs/pathUtils.ts`, ja sem dependencia de
- * `vscode`) em vez de `resolveRelative` (que trabalha com `vscode.Uri`).
- *
- * `TerminalService` e usado so para um "heartbeat" fixo e sem conteudo dinamico, dando
- * transparencia de que algo esta rodando sem reexecutar o script nem arriscar escapar saida
- * arbitraria dentro de um comando de shell.
+ * Roda o script `verify` de uma etapa e produz um {@link VerificationResult}
  */
 export class EvaluationRunner {
   constructor(private readonly deps: EvaluationRunnerDeps) {}

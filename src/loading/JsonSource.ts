@@ -8,13 +8,6 @@ import {
 } from 'jsonc-parser';
 import { error, ValidationError, ValidationRange } from './types';
 
-/**
- * Parser posicional do `index.json`.
- *
- * Faz o parse tolerante do texto e permite mapear um caminho de instancia
- * (estilo JSON Pointer, como o `instancePath` do Ajv) para um intervalo
- * linha/coluna dentro do arquivo, alimentando os diagnosticos do editor.
- */
 export class JsonSource {
   private readonly lineStarts: number[];
 
@@ -56,21 +49,17 @@ export class JsonSource {
     return { source, parseErrors };
   }
 
-  /** Valor JavaScript resultante do parse (pode ser parcial se houver erros). */
   getValue(): unknown {
     return this.value;
   }
 
-  /** `true` quando o parse produziu uma raiz de objeto utilizavel. */
   hasTree(): boolean {
     return this.tree !== undefined;
   }
 
   /**
-   * Intervalo do *valor* associado a um caminho de instancia.
-   *
-   * @param instancePath caminho estilo JSON Pointer (`/details/steps/0/points`).
-   *   String vazia ou `/` referem-se a raiz.
+   * @param instancePath 
+   * @returns 
    */
   rangeForPath(instancePath: string): ValidationRange | undefined {
     if (!this.tree) {
@@ -93,9 +82,8 @@ export class JsonSource {
   }
 
   /**
-   * Ponteiros das etapas (`/details/steps/i/<prop>`) que declaram a propriedade
-   * `prop` mais de uma vez. JSON aceita chaves repetidas e o parser fica com a
-   * ultima; usado para o criterio "uma etapa, um script de avaliacao" (UC02 CA-2).
+   * @param prop 
+   * @returns 
    */
   duplicateStepPropertyPointers(prop: string): string[] {
     if (!this.tree) {
@@ -164,7 +152,6 @@ function computeLineStarts(text: string): number[] {
   return starts;
 }
 
-/** Converte um `instancePath` (JSON Pointer) em segmentos para o jsonc-parser. */
 export function toSegments(instancePath: string): Array<string | number> {
   if (!instancePath || instancePath === '/') {
     return [];

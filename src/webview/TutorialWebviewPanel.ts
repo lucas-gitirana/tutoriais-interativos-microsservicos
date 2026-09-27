@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { FinishSummaryItem } from '../evaluation/ScoreTracker';
 
-/** Mensagens que o script do webview (`media/webview.js`) envia para a extensao. */
 export type WebviewMessage =
   | { type: 'next' }
   | { type: 'previous' }
@@ -9,10 +8,8 @@ export type WebviewMessage =
   | { type: 'verify' }
   | { type: 'stop' };
 
-/** Ultimo resultado de verificacao conhecido da etapa (US04, CA-2/CA-4). */
 export interface StepVerificationView {
   success: boolean;
-  /** Mensagem de confirmacao (sucesso) ou resultado esperado (falha, CA-4). */
   message: string;
 }
 
@@ -21,27 +18,23 @@ export interface StepViewData {
   index: number;
   total: number;
   html: string;
-  /** `true` quando a etapa tem script `verify` vinculado (CA-1). */
   hasVerify: boolean;
-  /** Ultimo resultado de verificacao desta etapa, se ja verificada. */
   verification?: StepVerificationView;
 }
 
-/**
- * Painel unico (`vscode.WebviewPanel`) reaproveitado entre as telas do
- * tutorial em execucao: introducao (CA-2), etapa (CA-3) e finalizacao (CA-5).
- *
- * Corresponde a classe `TutorialWebviewPanel` do Diagrama de Classes.
- */
 export class TutorialWebviewPanel implements vscode.Disposable {
   private panel: vscode.WebviewPanel | undefined;
   private readonly messageEmitter = new vscode.EventEmitter<WebviewMessage>();
+  //expõe o evento disparado por `this.messageEmitter.fire(msg)` para que o extensions.ts possa capturar as mensagens enviadas pelo webview
   readonly onDidReceiveMessage = this.messageEmitter.event;
   private subscriptions: vscode.Disposable[] = [];
 
   constructor(private readonly extensionUri: vscode.Uri) {}
 
-  /** Cria (ou traz para frente) o painel, vinculado ao diretorio do tutorial atual. */
+  /**
+   * @param tutorialDir
+   * @returns 
+   */
   reveal(tutorialDir: vscode.Uri): vscode.Webview {
     if (this.panel) {
       this.panel.reveal(vscode.ViewColumn.One, true);
@@ -59,6 +52,8 @@ export class TutorialWebviewPanel implements vscode.Disposable {
     );
     this.subscriptions.push(
       this.panel.webview.onDidReceiveMessage((msg: WebviewMessage) =>
+        //Mensagem que será capturada pelo extensions.ts e enviada ao TutorialController
+        //(js -> webview -> extension -> controller)
         this.messageEmitter.fire(msg)
       ),
       this.panel.onDidDispose(() => {
@@ -70,17 +65,14 @@ export class TutorialWebviewPanel implements vscode.Disposable {
     return this.panel.webview;
   }
 
-  /** `true` se o painel estiver aberto no momento. */
   isOpen(): boolean {
     return this.panel !== undefined;
   }
 
-  /** Conteudo HTML atual do painel, para inspecao nos testes de integracao. */
   getHtmlForTests(): string | undefined {
     return this.panel?.webview.html;
   }
 
-  /** Fecha o painel, se aberto (ex.: quando o `index.json` e recarregado em execucao). */
   close(): void {
     this.panel?.dispose();
   }
@@ -163,7 +155,6 @@ ${bodyHtml}
   }
 }
 
-/** Diretorio (em `dist/`, copiado pelo esbuild) onde `webview.css`/`webview.js` ficam. */
 function mediaRoot(extensionUri: vscode.Uri): vscode.Uri {
   return vscode.Uri.joinPath(extensionUri, 'dist', 'webview', 'media');
 }
@@ -177,7 +168,6 @@ function getNonce(): string {
   return text;
 }
 
-/** Bloco de verificacao automatica da etapa (CA-1, CA-2, CA-4). */
 function renderVerifyBlock(verification: StepVerificationView | undefined): string {
   const resultHtml = verification
     ? verification.success
