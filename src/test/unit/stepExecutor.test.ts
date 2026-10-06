@@ -14,8 +14,14 @@ class FakeReader implements ScriptReader {
 
 class FakeEditorOpener implements EditorOpener {
   calls: Array<{ relativePath: string; line0Based?: number }> = [];
+  closed: string[] = [];
   openBeside(relativePath: string, line0Based?: number): Promise<void> {
     this.calls.push({ relativePath, line0Based });
+    return Promise.resolve();
+  }
+
+  close(relativePath: string): Promise<void> {
+    this.closed.push(relativePath);
     return Promise.resolve();
   }
 }
@@ -70,6 +76,20 @@ describe('StepExecutor', () => {
       file: { name: 'src/app.py', line: 12 }
     });
     assert.deepStrictEqual(fileNav.calls, [{ relativePath: 'src/app.py', line0Based: 11 }]);
+  });
+
+  it('etapa sem file depois de etapa com file: fecha o arquivo da etapa anterior', async () => {
+    const { executor, fileNav } = buildExecutor({ 'step-01.md': 'a', 'step-02.md': 'b' });
+    await executor.openStep({ title: 'Etapa 1', text: 'step-01.md', file: { name: 'src/app.py' } });
+    await executor.openStep({ title: 'Etapa 2', text: 'step-02.md' });
+    assert.deepStrictEqual(fileNav.closed, ['src/app.py']);
+  });
+
+  it('openTextBlock (finalizacao) fecha o arquivo da ultima etapa', async () => {
+    const { executor, fileNav } = buildExecutor({ 'step-01.md': 'a', 'finish.md': 'fim' });
+    await executor.openStep({ title: 'Etapa 1', text: 'step-01.md', file: { name: 'src/app.py' } });
+    await executor.openTextBlock({ text: 'finish.md' });
+    assert.deepStrictEqual(fileNav.closed, ['src/app.py']);
   });
 
   it('openTextBlock sem background: nao aciona o terminal', async () => {

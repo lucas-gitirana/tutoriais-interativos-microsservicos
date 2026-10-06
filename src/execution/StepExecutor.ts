@@ -30,11 +30,14 @@ export class StepExecutor {
   async openStep(step: Step): Promise<RenderedContent> {
     if (step.file) {
       await this.deps.fileNav.openFile(step.file);
+    } else {
+      await this.deps.fileNav.closeOpened();
     }
     return this.renderBlock(step.text);
   }
 
   async openTextBlock(block: TextBlock): Promise<RenderedContent> {
+    await this.deps.fileNav.closeOpened();
     const rendered = await this.renderBlock(block.text);
     if (block.background) {
       const script = await this.deps.reader.read(block.background);

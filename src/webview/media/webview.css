@@ -17,6 +17,39 @@ h1 {
   overflow-x: auto;
 }
 
+.tutoriais-content img {
+  max-width: 100%;
+  height: auto;
+}
+
+.tutoriais-content table {
+  border-collapse: collapse;
+  margin: 12px 0;
+}
+
+.tutoriais-content th,
+.tutoriais-content td {
+  border: 1px solid var(--vscode-panel-border);
+  padding: 6px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.tutoriais-content th {
+  background: var(--vscode-textCodeBlock-background);
+}
+
+.tutoriais-content tbody tr:nth-child(even) {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.tutoriais-content blockquote {
+  margin: 12px 0;
+  padding: 4px 12px;
+  border-left: 4px solid var(--vscode-textBlockQuote-border);
+  background: var(--vscode-textBlockQuote-background);
+}
+
 .tutoriais-content code {
   font-family: var(--vscode-editor-font-family);
 }
