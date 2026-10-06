@@ -240,6 +240,7 @@ export async function activate(
     if (typeof step.verify !== 'string') {
       return;
     }
+    await vscode.workspace.saveAll(false);
     const runner = new EvaluationRunner({ executor: verifyExecutor, terminal: terminalService });
     const result = await runner.verify(step, tutorialDir.fsPath);
     lastVerification.set(screen.index, result);

@@ -15,4 +15,18 @@ export class VscodeEditorOpener implements EditorOpener {
       selection
     });
   }
+
+  async close(relativePath: string): Promise<void> {
+    const uri = resolveRelative(this.tutorialDir, relativePath).toString();
+    const document = vscode.workspace.textDocuments.find((doc) => doc.uri.toString() === uri);
+    if (document?.isDirty) {
+      await document.save();
+    }
+    const tabs = vscode.window.tabGroups.all
+      .flatMap((group) => group.tabs)
+      .filter((tab) => tab.input instanceof vscode.TabInputText && tab.input.uri.toString() === uri);
+    if (tabs.length > 0) {
+      await vscode.window.tabGroups.close(tabs, true);
+    }
+  }
 }

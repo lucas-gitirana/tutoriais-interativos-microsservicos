@@ -21,7 +21,8 @@
     if (target.classList.contains('tutoriais-cmd-run')) {
       const encoded = target.getAttribute('data-command-b64');
       if (encoded) {
-        const command = atob(encoded);
+        const bytes = Uint8Array.from(atob(encoded), (c) => c.charCodeAt(0));
+        const command = new TextDecoder('utf-8').decode(bytes);
         vscode.postMessage({ type: 'runCommand', command });
       }
       return;
