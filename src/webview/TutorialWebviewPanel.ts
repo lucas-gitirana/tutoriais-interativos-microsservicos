@@ -79,6 +79,7 @@ export class TutorialWebviewPanel implements vscode.Disposable {
 
   renderIntro(tutorialTitle: string, html: string): void {
     this.setHtml(
+      'intro',
       tutorialTitle,
       `<article class="tutoriais-content">${html}</article>
        <footer class="tutoriais-nav">
@@ -91,6 +92,7 @@ export class TutorialWebviewPanel implements vscode.Disposable {
   renderStep(data: StepViewData): void {
     const isLast = data.index === data.total - 1;
     this.setHtml(
+      `step-${data.index}`,
       `Etapa ${data.index + 1}/${data.total} — ${data.title}`,
       `<article class="tutoriais-content">${data.html}</article>
        ${data.hasVerify ? renderVerifyBlock(data.verification) : ''}
@@ -113,6 +115,7 @@ export class TutorialWebviewPanel implements vscode.Disposable {
         ? `<p class="tutoriais-score">Nota final: <strong>${score.total} / ${score.possible} pontos</strong></p>`
         : '';
     this.setHtml(
+      'finish',
       'Tutorial concluído',
       `<article class="tutoriais-content">${html}</article>
        ${scoreHtml}
@@ -125,7 +128,7 @@ export class TutorialWebviewPanel implements vscode.Disposable {
     this.messageEmitter.dispose();
   }
 
-  private setHtml(title: string, bodyHtml: string): void {
+  private setHtml(viewKey: string, title: string, bodyHtml: string): void {
     if (!this.panel) {
       return;
     }
@@ -146,7 +149,7 @@ export class TutorialWebviewPanel implements vscode.Disposable {
 <link rel="stylesheet" href="${cssUri}">
 <title>${escapeHtml(title)}</title>
 </head>
-<body>
+<body data-view-key="${escapeHtml(viewKey)}">
 <h1>${escapeHtml(title)}</h1>
 ${bodyHtml}
 <script nonce="${nonce}" src="${jsUri}"></script>

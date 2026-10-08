@@ -1,6 +1,18 @@
 (function () {
   const vscode = acquireVsCodeApi();
 
+  const viewKey = document.body.getAttribute('data-view-key');
+  const previousState = vscode.getState() || {};
+  if (previousState.viewKey !== viewKey) {
+    const scrollToTop = () => window.scrollTo(0, 0);
+    scrollToTop();
+    window.addEventListener('load', () => {
+      scrollToTop();
+      requestAnimationFrame(scrollToTop);
+    });
+  }
+  vscode.setState({ ...previousState, viewKey });
+
   document.addEventListener('click', (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) {
