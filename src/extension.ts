@@ -4,8 +4,16 @@ import { TutorialController } from './controller/TutorialController';
 import { StepStatus } from './controller/types';
 import { JsonDiagnostics } from './diagnostics/JsonDiagnostics';
 import { EvaluationRunner } from './evaluation/EvaluationRunner';
+import { HttpResultReporter } from './evaluation/HttpResultReporter';
 import { NodeVerifyScriptExecutor } from './evaluation/NodeVerifyScriptExecutor';
-import { getSummary, getTotalScore } from './evaluation/ScoreTracker';
+import {
+  buildPerformanceRecord,
+  fallbackFileContent,
+  fallbackFileName,
+  validateStudentName
+} from './evaluation/PerformanceRecord';
+import { ResultReporter } from './evaluation/ResultReporter';
+import { FinishSummaryItem, getSummary, getTotalScore } from './evaluation/ScoreTracker';
 import { VerificationResult } from './evaluation/types';
 import { VerifyScriptExecutor } from './evaluation/VerifyScriptExecutor';
 import { FileNavigationService } from './execution/FileNavigationService';
@@ -22,7 +30,14 @@ import { LoadResult } from './loading/types';
 import { MarkdownRenderer } from './markdown/MarkdownRenderer';
 import { TutorialNotifier } from './ui/TutorialNotifier';
 import { TutorialTreeViewProvider } from './view/TutorialTreeViewProvider';
-import { TutorialWebviewPanel, WebviewMessage } from './webview/TutorialWebviewPanel';
+import {
+  ReportViewData,
+  TutorialWebviewPanel,
+  WebviewMessage
+} from './webview/TutorialWebviewPanel';
+
+/** Chave do `globalState` com o ultimo nome informado pelo aluno */
+const STUDENT_KEY = 'tutoriais.aluno';
 
 /** API exposta para os testes de integracao. */
 export interface TutorialExtensionApi {
@@ -45,6 +60,8 @@ export interface TutorialExtensionApi {
   simulateWebviewMessage(message: WebviewMessage): Promise<void>;
   /** Injeta um `VerifyScriptExecutor` (ex.: fake) para os testes de integracao (US04). */
   setVerifyScriptExecutor(executor: VerifyScriptExecutor): void;
+  /** Injeta um `ResultReporter` (ex.: fake) para os testes de integracao (US07). */
+  setResultReporter(reporter: ResultReporter): void;
 }
 
 export async function activate(
@@ -60,6 +77,7 @@ export async function activate(
   const markdownRenderer = new MarkdownRenderer();
   let terminalService = new TerminalService(new VscodeTerminalFactory());
   let verifyExecutor: VerifyScriptExecutor = new NodeVerifyScriptExecutor();
+  let resultReporter: ResultReporter = new HttpResultReporter();
 
   const treeView = vscode.window.createTreeView('tutoriaisView', {
     treeDataProvider: treeProvider
@@ -71,6 +89,16 @@ export async function activate(
   let stepExecutor: StepExecutor | undefined;
   /** Ultimo resultado de verificacao conhecido de cada etapa (US04), por indice. */
   const lastVerification = new Map<number, VerificationResult>();
+  
+  let finishView:
+    | { html: string; summary: FinishSummaryItem[]; score: { total: number; possible: number } }
+    | undefined;
+  let reportState: ReportViewData | undefined;
+
+  const resetReport = (): void => {
+    finishView = undefined;
+    reportState = undefined;
+  };
 
   const tutorialDirOf = (result: LoadResult): vscode.Uri | undefined =>
     result.status === 'ok' ? dirOf(result.indexUri) : undefined;
@@ -85,6 +113,7 @@ export async function activate(
     controller = undefined;
     stepExecutor = undefined;
     lastVerification.clear();
+    resetReport();
     setEmExecucao(false);
     webviewPanel.close();
   };
@@ -139,12 +168,38 @@ export async function activate(
     }
 
     const rendered = await stepExecutor.openTextBlock(tutorial.details.finish);
+    const statuses = currentStatuses();
+    finishView = {
+      html: rendered.html,
+      summary: getSummary(tutorial.details.steps, statuses),
+      score: getTotalScore(tutorial.details.steps, statuses)
+    };
+    if (tutorial.report && !reportState) {
+      const saved = context.globalState.get<unknown>(STUDENT_KEY);
+      reportState = { nome: typeof saved === 'string' ? saved : '', status: 'idle' };
+    }
+    renderFinishView();
+  };
+
+  const currentStatuses = (): Map<number, StepStatus> => {
     const statuses = new Map<number, StepStatus>();
-    tutorial.details.steps.forEach((_, index) => statuses.set(index, controller!.statusOf(index)));
+    if (lastResult.status === 'ok' && controller) {
+      lastResult.tutorial.details.steps.forEach((_, index) =>
+        statuses.set(index, controller!.statusOf(index))
+      );
+    }
+    return statuses;
+  };
+
+  const renderFinishView = (): void => {
+    if (!finishView) {
+      return;
+    }
     webviewPanel.renderFinish(
-      rendered.html,
-      getSummary(tutorial.details.steps, statuses),
-      getTotalScore(tutorial.details.steps, statuses)
+      finishView.html,
+      finishView.summary,
+      finishView.score,
+      lastResult.status === 'ok' && lastResult.tutorial.report ? reportState : undefined
     );
   };
 
@@ -177,6 +232,7 @@ export async function activate(
     if (!active || !tutorialDir) {
       return;
     }
+    resetReport();
     webviewPanel.reveal(tutorialDir);
     active.start();
   };
@@ -205,7 +261,73 @@ export async function activate(
       await runVerification();
     } else if (msg.type === 'stop') {
       await interromperTutorial();
+    } else if (msg.type === 'submitResult') {
+      await submitResult(msg.nome);
     }
+  };
+
+  /**
+   * Envia nome e nota ao endpoint do professor Em caso de falha, 
+   * grava uma copia local do registro para o aluno entregar 
+   * por outro meio.
+   */
+  const submitResult = async (nome: string): Promise<void> => {
+    const tutorialDir = tutorialDirOf(lastResult);
+    if (lastResult.status !== 'ok' || !controller || !tutorialDir || !reportState) {
+      return;
+    }
+    const report = lastResult.tutorial.report;
+    if (
+      !report ||
+      controller.getScreen()?.kind !== 'finish' ||
+      reportState.status === 'sending' ||
+      reportState.status === 'sent'
+    ) {
+      return;
+    }
+
+    const validation = validateStudentName(nome);
+    if (!validation.ok) {
+      reportState = { nome, status: 'failed', message: validation.message };
+      renderFinishView();
+      return;
+    }
+    const nomeAluno = validation.nome;
+    await context.globalState.update(STUDENT_KEY, nomeAluno);
+
+    const sending: ReportViewData = { nome: nomeAluno, status: 'sending' };
+    reportState = sending;
+    renderFinishView();
+
+    const record = buildPerformanceRecord(
+      lastResult.tutorial,
+      currentStatuses(),
+      nomeAluno,
+      new Date()
+    );
+    const result = await resultReporter.send(report.endpoint, record);
+    if (reportState !== sending) {
+      return;
+    }
+
+    if (result.ok) {
+      const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      reportState = { nome: nomeAluno, status: 'sent', message: `✓ Resultado enviado às ${hora}.` };
+    } else {
+      let message = `✗ Não foi possível enviar o resultado: ${result.message}`;
+      const fileName = fallbackFileName(record);
+      try {
+        await vscode.workspace.fs.writeFile(
+          vscode.Uri.joinPath(tutorialDir, fileName),
+          Buffer.from(fallbackFileContent(record), 'utf8')
+        );
+        message += `\nUma cópia foi salva em "${fileName}"; se o envio continuar falhando, entregue esse arquivo ao professor.`;
+      } catch {
+        // Sem copia local: a mensagem de erro do envio ja orienta o aluno.
+      }
+      reportState = { nome: nomeAluno, status: 'failed', message };
+    }
+    renderFinishView();
   };
 
   /** Interrompe a execucao (US06) apos confirmacao: zera o progresso e fecha o painel. */
@@ -222,6 +344,7 @@ export async function activate(
       return;
     }
     lastVerification.clear();
+    resetReport();
     controller.stop();
     webviewPanel.close();
   };
@@ -320,6 +443,9 @@ export async function activate(
     },
     setVerifyScriptExecutor: (executor: VerifyScriptExecutor) => {
       verifyExecutor = executor;
+    },
+    setResultReporter: (reporter: ResultReporter) => {
+      resultReporter = reporter;
     },
     simulateWebviewMessage: handleWebviewMessage
   };

@@ -69,6 +69,21 @@ function translate(e: ErrorObject): ValidationError {
         `O valor em ${describePath(base)} deve ser menor ou igual a ${limit}.`
       );
     }
+    case 'format': {
+      const format = String((e.params as { format: string }).format);
+      const esperado = format === 'uri' ? 'uma URL valida' : `o formato '${format}'`;
+      return error(base, `Formato invalido em ${describePath(base)}: esperado ${esperado}.`);
+    }
+    case 'pattern': {
+      const pattern = String((e.params as { pattern: string }).pattern);
+      return error(
+        base,
+        `O valor em ${describePath(base)} nao segue o padrao esperado (${pattern}).`
+      );
+    }
+    case 'minLength': {
+      return error(base, `O valor em ${describePath(base)} nao pode ser vazio.`);
+    }
     case 'enum': {
       return error(base, `Valor nao permitido em ${describePath(base)}.`);
     }

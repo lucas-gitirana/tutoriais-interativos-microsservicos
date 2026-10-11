@@ -31,9 +31,15 @@ export interface BackendConfig {
   imageid: string;
 }
 
+export interface ReportConfig {
+  endpoint: string;
+  token?: string;
+}
+
 export interface TutorialDefinition {
   title: string;
   description: string;
   details: TutorialDetails;
   backend: BackendConfig;
+  report?: ReportConfig;
 }

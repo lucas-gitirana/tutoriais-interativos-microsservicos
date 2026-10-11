@@ -47,6 +47,25 @@
           "description": "Identifier of the backend image/environment to provision (e.g. a Kubernetes cluster setup)"
         }
       }
+    },
+    "report": {
+      "type": "object",
+      "description": "Optional performance report: at the end of the tutorial the student may send name, enrollment number and score to the instructor's remote endpoint (e.g. a Google Apps Script Web App bound to a spreadsheet)",
+      "required": ["endpoint"],
+      "additionalProperties": false,
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://",
+          "description": "URL that receives the performance record via HTTP POST (JSON body)"
+        },
+        "token": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Value sent along with the record so the endpoint can discard submissions from other sources (not a strong secret: it is visible in the repository)"
+        }
+      }
     }
   },
   "definitions": {

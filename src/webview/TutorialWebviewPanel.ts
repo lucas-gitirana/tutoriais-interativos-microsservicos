@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { NOME_MAX } from '../evaluation/PerformanceRecord';
 import { FinishSummaryItem } from '../evaluation/ScoreTracker';
 
 export type WebviewMessage =
@@ -6,7 +7,8 @@ export type WebviewMessage =
   | { type: 'previous' }
   | { type: 'runCommand'; command: string }
   | { type: 'verify' }
-  | { type: 'stop' };
+  | { type: 'stop' }
+  | { type: 'submitResult'; nome: string };
 
 export interface StepVerificationView {
   success: boolean;
@@ -20,6 +22,13 @@ export interface StepViewData {
   html: string;
   hasVerify: boolean;
   verification?: StepVerificationView;
+}
+
+/** Estado do formulario de envio do desempenho na tela de finalizacao (US07). */
+export interface ReportViewData {
+  nome: string;
+  status: 'idle' | 'sending' | 'sent' | 'failed';
+  message?: string;
 }
 
 export class TutorialWebviewPanel implements vscode.Disposable {
@@ -107,7 +116,8 @@ export class TutorialWebviewPanel implements vscode.Disposable {
   renderFinish(
     html: string,
     summary: FinishSummaryItem[],
-    score: { total: number; possible: number }
+    score: { total: number; possible: number },
+    report?: ReportViewData
   ): void {
     const list = summary.map((item) => renderSummaryItem(item)).join('');
     const scoreHtml =
@@ -119,7 +129,8 @@ export class TutorialWebviewPanel implements vscode.Disposable {
       'Tutorial concluído',
       `<article class="tutoriais-content">${html}</article>
        ${scoreHtml}
-       <ul class="tutoriais-summary">${list}</ul>`
+       <ul class="tutoriais-summary">${list}</ul>
+       ${report ? renderReportBlock(report) : ''}`
     );
   }
 
@@ -183,6 +194,31 @@ function renderVerifyBlock(verification: StepVerificationView | undefined): stri
     <button id="btn-verify">Verificar</button>
     ${resultHtml}
   </div>`;
+}
+
+function renderReportBlock(report: ReportViewData): string {
+  const locked = report.status === 'sending' || report.status === 'sent';
+  const disabled = locked ? ' disabled' : '';
+  const button =
+    report.status === 'sent'
+      ? ''
+      : `<button id="btn-report"${disabled}>${
+          report.status === 'sending'
+            ? 'Enviando…'
+            : report.status === 'failed'
+              ? 'Tentar novamente'
+              : 'Enviar resultado'
+        }</button>`;
+  const resultClass =
+    report.status === 'sent' ? 'success' : report.status === 'failed' ? 'failure' : 'hidden';
+  return `<section class="tutoriais-report">
+    <h2>Registrar desempenho</h2>
+    <p class="tutoriais-report-aviso">Ao clicar em <strong>Enviar resultado</strong>, seu nome e sua nota serão enviados ao professor.</p>
+    <label for="report-nome">Nome</label>
+    <input id="report-nome" type="text" maxlength="${NOME_MAX}" autocomplete="name" value="${escapeHtml(report.nome)}"${disabled}>
+    ${button}
+    <div id="report-result" class="${resultClass}">${escapeHtml(report.message ?? '')}</div>
+  </section>`;
 }
 
 const SUMMARY_MARKERS: Record<FinishSummaryItem['status'], { symbol: string; cssClass: string }> = {

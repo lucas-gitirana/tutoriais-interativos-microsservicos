@@ -9,7 +9,8 @@ Ao abrir uma pasta com um `index.json` válido, o tutorial aparece na aba
 etapa pode abrir um arquivo em uma linha específica, oferecer comandos de
 terminal com um clique e ter uma avaliação automática (`verify`) que só roda
 quando o botão **Verificar** é clicado. Alterações no `index.json` ou nos
-arquivos `.md`/`.sh` referenciados revalidam o tutorial ao vivo.
+arquivos `.md`/`.sh` referenciados revalidam o tutorial ao vivo. Ao final, se o
+tutorial tiver um bloco `report`, o aluno pode enviar nome e nota para uma planilha do professor.
 
 ## Fluxos
 
@@ -47,6 +48,7 @@ flowchart TB
     E8 --> E10
     E9 -.->|avançar sem verificar| E10
     E10 --> E11["Tela de finalização:\nnota final + resumo por etapa"]
+    E11 -.->|"report configurado +\nclique em Enviar resultado"| E12["POST para o endpoint\n(planilha do professor)"]
   end
 
   W5 -.-> E1
@@ -78,9 +80,14 @@ relativos ao diretório do `index.json`, com `/` como separador.
 | `details.intro` / `details.finish` | sim | _textBlock_ | Telas de introdução e finalização. |
 | `details.steps` | sim | _step[]_ | Lista ordenada de etapas (mínimo 1). |
 | `backend.imageid` | sim | string | Identificador do ambiente a provisionar. |
+| `report` | não | _report_ | Envio do desempenho do aluno ao professor. |
 
 **_textBlock_**: `text` (markdown, obrigatório) e `background` (script shell
 opcional, roda automaticamente ao abrir a tela).
+
+**_report_**: `endpoint` (URL `http(s)`, obrigatório) e `token` (texto
+opcional, enviado junto ao registro). Veja
+[Registro de desempenho](#registro-de-desempenho).
 
 **_step_**: `title` e `text` (obrigatórios); `verify` (script `.sh` opcional,
 avaliação automática da etapa); `file` (opcional, `{ "name", "line" }`, abre o
@@ -121,6 +128,27 @@ no primeiro comando que falhar, antes do `echo` explicativo rodar. Prefira
 pontos das etapas com `verify` aprovado sobre a soma dos pontos de todas as
 etapas avaliáveis. Etapas sem `verify` não entram na nota e são marcadas
 concluídas ao simplesmente avançar.
+
+## Registro de desempenho
+
+Com um bloco `report` no `index.json`, a tela de finalização ganha um formulário
+com o campo **Nome** e o botão **Enviar resultado**. Nada é enviado sem
+esse clique, e o formulário avisa o aluno sobre quais dados serão enviados.
+
+```json
+"report": {
+  "endpoint": "https://script.google.com/macros/s/SEU_ID/exec",
+  "token": "devops-2026-2"
+}
+```
+
+`status` de cada etapa: `correct`, `incorrect`, `not-evaluated` (tem `verify`,
+mas não foi verificada) ou `no-evaluation` (etapa sem `verify`).
+
+
+O backend de referência é uma planilha Google com Apps Script, que guarda uma
+linha por envio e uma aba de resumo por tutorial. Passo a passo em
+[`docs/backend-planilha/`](docs/backend-planilha/README.md).
 
 ## Desenvolvimento
 

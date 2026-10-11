@@ -39,6 +39,16 @@
       }
       return;
     }
+    if (target.id === 'btn-report') {
+      const nome = document.getElementById('report-nome');
+      target.setAttribute('disabled', 'true');
+      target.textContent = 'Enviando…';
+      vscode.postMessage({
+        type: 'submitResult',
+        nome: nome instanceof HTMLInputElement ? nome.value : ''
+      });
+      return;
+    }
     if (target.id === 'btn-verify') {
       target.setAttribute('disabled', 'true');
       target.textContent = 'Verificando…';
