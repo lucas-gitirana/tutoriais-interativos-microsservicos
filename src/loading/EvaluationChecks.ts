@@ -38,6 +38,24 @@ export function checkPointsCoherence(
   return problemas;
 }
 
+export function checkReportEndpoint(
+  tutorial: TutorialDefinition,
+  source?: JsonSource
+): ValidationError[] {
+  const endpoint = tutorial.report?.endpoint;
+  if (!endpoint || !/^http:\/\//i.test(endpoint)) {
+    return [];
+  }
+  const pointer = '/report/endpoint';
+  return [
+    warning(
+      pointer,
+      'O registro de desempenho sera enviado sem HTTPS; nome e nota trafegam em texto claro.',
+      source?.rangeForPath(pointer)
+    )
+  ];
+}
+
 export function checkSingleVerifyKey(source?: JsonSource): ValidationError[] {
   if (!source) {
     return [];
@@ -83,6 +101,7 @@ export async function runEvaluationChecks(
 
   problemas.push(...checkPointsCoherence(tutorial, source));
   problemas.push(...checkSingleVerifyKey(source));
+  problemas.push(...checkReportEndpoint(tutorial, source));
 
   return problemas;
 }

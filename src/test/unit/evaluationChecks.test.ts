@@ -5,6 +5,7 @@ import { BashSyntaxChecker, BashSyntaxCheckResult } from '../../fs/BashSyntaxChe
 import { NodeScriptReader } from '../../fs/NodeScriptReader';
 import {
   checkPointsCoherence,
+  checkReportEndpoint,
   checkSingleVerifyKey,
   runEvaluationChecks
 } from '../../loading/EvaluationChecks';
@@ -41,6 +42,29 @@ function fixture(name: string): { tutorial: TutorialDefinition; source: JsonSour
     source: JsonSource.parse(text).source
   };
 }
+
+describe('checkReportEndpoint (US07)', () => {
+  const base = tutorial([{ title: 'E1', text: 'a.md' }]);
+
+  it('sem report: sem avisos', () => {
+    assert.deepStrictEqual(checkReportEndpoint(base), []);
+  });
+
+  it('endpoint https: sem avisos', () => {
+    assert.deepStrictEqual(
+      checkReportEndpoint({ ...base, report: { endpoint: 'https://exemplo.com/r' } }),
+      []
+    );
+  });
+
+  it('endpoint http: 1 aviso em /report/endpoint', () => {
+    const errs = checkReportEndpoint({ ...base, report: { endpoint: 'http://exemplo.com/r' } });
+    assert.strictEqual(errs.length, 1);
+    assert.strictEqual(errs[0].severity, 'warning');
+    assert.strictEqual(errs[0].path, '/report/endpoint');
+    assert.match(errs[0].message, /HTTPS/);
+  });
+});
 
 describe('checkPointsCoherence (RF14)', () => {
   it('verify sem points: 1 aviso na etapa', () => {

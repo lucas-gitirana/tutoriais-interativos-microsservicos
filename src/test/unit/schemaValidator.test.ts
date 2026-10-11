@@ -79,6 +79,24 @@ describe('TutorialSchemaValidator', () => {
       count: 1,
       path: '/details/steps/0/verify',
       message: /tipo invalido/i
+    },
+    {
+      file: 'schema-invalid/report-missing-endpoint.json',
+      count: 1,
+      path: '/report/endpoint',
+      message: /obrigat/i
+    },
+    {
+      file: 'schema-invalid/report-endpoint-not-http.json',
+      count: 1,
+      path: '/report/endpoint',
+      message: /padrao esperado/i
+    },
+    {
+      file: 'schema-invalid/report-additional-property.json',
+      count: 1,
+      path: '/report/planilha',
+      message: /reconhecid/i
     }
   ];
 
@@ -96,6 +114,20 @@ describe('TutorialSchemaValidator', () => {
       assert.match(result.errors[0].message, caso.message);
     });
   }
+
+  it('aceita report com endpoint https e token', () => {
+    const json = load('valid-tutorial/index.json') as Record<string, unknown>;
+    json.report = { endpoint: 'https://script.google.com/macros/s/abc/exec', token: 'turma' };
+    assert.deepStrictEqual(validator.validate(json).errors, []);
+  });
+
+  it('rejeita endpoint que nao e URL', () => {
+    const json = load('valid-tutorial/index.json') as Record<string, unknown>;
+    json.report = { endpoint: 'nao e url' };
+    const result = validator.validate(json);
+    assert.strictEqual(result.valid, false);
+    assert.ok(result.errors.some((e) => /URL valida/.test(e.message)));
+  });
 
   it('reporta multiplos erros com allErrors', () => {
     const result = validator.validate({ title: 'x' });
