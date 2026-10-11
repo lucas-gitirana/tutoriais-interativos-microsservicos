@@ -52,6 +52,12 @@ function doPost(e) {
         textoSeguro(resumirEtapas(dados.etapas))
       ]);
       aba.getRange(aba.getLastRow(), 6).setNumberFormat('0.0%');
+      try {
+        atualizarResumo();
+      } catch (err) {
+        // O registro ja foi gravado; o resumo e refeito no proximo envio.
+        console.error('Falha ao atualizar o resumo: ' + err);
+      }
     } finally {
       lock.releaseLock();
     }
@@ -68,19 +74,83 @@ function doGet() {
 
 /**
  * Execute uma vez pelo editor (Executar > configurarPlanilha) para criar as
- * abas "Registros" e "Resumo".
+ * abas "Registros" e "Resumo". Tambem pode ser executada a qualquer momento
+ * para refazer o resumo.
  */
 function configurarPlanilha() {
   abaRegistros();
+  atualizarResumo();
+}
+
+/**
+ * Recalcula a aba "Resumo" a partir de "Registros", uma linha por tutorial.
+ * Grava valores (e nao uma formula) para funcionar em qualquer localidade da
+ * planilha: em pt-BR o separador de argumentos e ';', e uma formula gravada
+ * com ',' resulta em "Erro de analise de formula".
+ *
+ * Envios conta todas as linhas; Alunos conta nomes distintos (sem diferenciar
+ * maiusculas/espacos). Media, minimo e maximo usam o ultimo envio de cada aluno.
+ */
+function atualizarResumo() {
   const planilha = SpreadsheetApp.getActiveSpreadsheet();
+  const registros = abaRegistros();
   const resumo = planilha.getSheetByName(ABA_RESUMO) || planilha.insertSheet(ABA_RESUMO);
+
+  const linhas =
+    registros.getLastRow() > 1
+      ? registros.getRange(2, 1, registros.getLastRow() - 1, CABECALHO.length).getValues()
+      : [];
+
+  // tutorial -> { envios, ultimoPorAluno: chave -> { recebido, percentual } }
+  const porTutorial = {};
+  linhas.forEach(function (linha) {
+    const recebido = linha[0] instanceof Date ? linha[0].getTime() : 0;
+    const tutorial = String(linha[1]);
+    const aluno = String(linha[2]).trim().replace(/\s+/g, ' ').toLowerCase();
+    if (!tutorial || !aluno) {
+      return;
+    }
+    const grupo = porTutorial[tutorial] || (porTutorial[tutorial] = { envios: 0, ultimoPorAluno: {} });
+    grupo.envios++;
+    const anterior = grupo.ultimoPorAluno[aluno];
+    if (!anterior || recebido >= anterior.recebido) {
+      grupo.ultimoPorAluno[aluno] = { recebido: recebido, percentual: linha[5] };
+    }
+  });
+
+  const saida = [['Tutorial', 'Envios', 'Alunos', 'Média', 'Mínimo', 'Máximo']];
+  Object.keys(porTutorial)
+    .sort()
+    .forEach(function (tutorial) {
+      const grupo = porTutorial[tutorial];
+      const alunos = Object.keys(grupo.ultimoPorAluno);
+      const percentuais = alunos
+        .map(function (aluno) {
+          return grupo.ultimoPorAluno[aluno].percentual;
+        })
+        .filter(function (p) {
+          return typeof p === 'number';
+        });
+      const soma = percentuais.reduce(function (a, b) {
+        return a + b;
+      }, 0);
+      saida.push([
+        tutorial,
+        grupo.envios,
+        alunos.length,
+        percentuais.length ? soma / percentuais.length : '',
+        percentuais.length ? Math.min.apply(null, percentuais) : '',
+        percentuais.length ? Math.max.apply(null, percentuais) : ''
+      ]);
+    });
+
   resumo.clear();
-  resumo.getRange('A1').setFormula(
-    '=QUERY(' + ABA_REGISTROS + '!B:F,' +
-      '"select B, count(C), avg(F), min(F), max(F) where B is not null group by B ' +
-      "label count(C) 'Envios', avg(F) 'Média', min(F) 'Mínimo', max(F) 'Máximo'\", 1)"
-  );
-  resumo.getRange('C:E').setNumberFormat('0.0%');
+  resumo.getRange(1, 1, saida.length, saida[0].length).setValues(saida);
+  resumo.getRange(1, 1, 1, saida[0].length).setFontWeight('bold');
+  resumo.setFrozenRows(1);
+  if (saida.length > 1) {
+    resumo.getRange(2, 4, saida.length - 1, 3).setNumberFormat('0.0%');
+  }
 }
 
 function abaRegistros() {

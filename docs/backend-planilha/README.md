@@ -44,13 +44,15 @@ registros, e a aba **Resumo** agrupa por ela.
 - **Registros**: uma linha por envio, com data e hora de recebimento, tutorial,
   nome, nota, nota máxima, percentual e o resultado de cada etapa
   (`✓` correta, `✗` incorreta, `—` não verificada, `·` sem avaliação).
-- **Resumo**: por tutorial, a quantidade de envios e o percentual médio, mínimo
-  e máximo.
+- **Resumo**: uma linha por tutorial, com a quantidade de envios, a de alunos
+  distintos e o percentual médio, mínimo e máximo da turma. É recalculado pelo
+  script a cada envio. Para refazê-lo manualmente, execute `configurarPlanilha`
+  no editor do Apps Script.
 
 Um aluno pode enviar mais de uma vez, por exemplo se refizer o tutorial. Todos
-os envios ficam registrados; para considerar só o último de cada aluno,
-ordene **Registros** por *Recebido em* e use **Dados → Limpeza de dados →
-Remover cópias** sobre as colunas *Tutorial* e *Nome* em uma cópia da aba.
+os envios ficam em **Registros**. No **Resumo**, a média, o mínimo e o máximo
+usam só o último envio de cada aluno. Nomes que diferem apenas em maiúsculas ou
+espaços contam como o mesmo aluno.
 
 ## Limitações
 
