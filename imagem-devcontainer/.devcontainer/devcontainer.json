@@ -1,0 +1,10 @@
+// Imagem base compartilhada pelos tutoriais (CQRS, Saga Coreografada, Circuit Breaker).
+// Publicada em ghcr.io/lucas-gitirana/tutoriais-devcontainer pelo workflow
+// .github/workflows/imagem-devcontainer.yml, já com a feature docker-in-docker instalada.
+{
+  "name": "Tutoriais Interativos de Microsserviços",
+  "build": { "dockerfile": "Dockerfile" },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  }
+}

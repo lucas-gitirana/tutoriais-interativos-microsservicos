@@ -17,3 +17,4 @@ tsconfig.json
 **/tsconfig.json
 **/.eslintrc.json
 vsc-extension-quickstart.md
+imagem-devcontainer/**

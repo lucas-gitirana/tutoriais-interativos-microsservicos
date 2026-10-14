@@ -1,0 +1,35 @@
+name: Imagem do devcontainer
+
+# Monta a imagem usada pelos devcontainers dos tutoriais e publica no GHCR.
+# Os tutoriais apenas baixam a imagem pronta, sem build nem instalação de features.
+on:
+  push:
+    branches: [main]
+    paths:
+      - imagem-devcontainer/**
+      - .github/workflows/imagem-devcontainer.yml
+  workflow_dispatch:
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login no GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Montar e publicar imagem
+        uses: devcontainers/ci@v0.3
+        with:
+          subFolder: imagem-devcontainer
+          imageName: ghcr.io/lucas-gitirana/tutoriais-devcontainer
+          imageTag: latest,${{ github.sha }}
+          push: always
