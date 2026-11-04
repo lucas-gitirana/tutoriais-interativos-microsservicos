@@ -31,13 +31,6 @@ describe('TutorialSchemaValidator', () => {
       message: /obrigat/i
     },
     { file: 'schema-invalid/missing-details.json', count: 1, path: '/details', message: /obrigat/i },
-    { file: 'schema-invalid/missing-backend.json', count: 1, path: '/backend', message: /obrigat/i },
-    {
-      file: 'schema-invalid/backend-missing-imageid.json',
-      count: 1,
-      path: '/backend/imageid',
-      message: /obrigat/i
-    },
     {
       file: 'schema-invalid/empty-steps.json',
       count: 1,
@@ -115,6 +108,18 @@ describe('TutorialSchemaValidator', () => {
     });
   }
 
+  it('aceita tutorial sem backend', () => {
+    const json = load('valid-tutorial/index.json') as Record<string, unknown>;
+    delete json.backend;
+    assert.deepStrictEqual(validator.validate(json).errors, []);
+  });
+
+  it('aceita backend sem imageid', () => {
+    const json = load('valid-tutorial/index.json') as Record<string, unknown>;
+    json.backend = {};
+    assert.deepStrictEqual(validator.validate(json).errors, []);
+  });
+
   it('aceita report com endpoint https e token', () => {
     const json = load('valid-tutorial/index.json') as Record<string, unknown>;
     json.report = { endpoint: 'https://script.google.com/macros/s/abc/exec', token: 'turma' };
@@ -131,8 +136,8 @@ describe('TutorialSchemaValidator', () => {
 
   it('reporta multiplos erros com allErrors', () => {
     const result = validator.validate({ title: 'x' });
-    // Faltam description, details e backend.
+    // Faltam description e details.
     assert.strictEqual(result.valid, false);
-    assert.ok(result.errors.length >= 3);
+    assert.ok(result.errors.length >= 2);
   });
 });

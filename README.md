@@ -79,7 +79,7 @@ relativos ao diretório do `index.json`, com `/` como separador.
 | `description` | sim | string | Resumo curto do tutorial. |
 | `details.intro` / `details.finish` | sim | _textBlock_ | Telas de introdução e finalização. |
 | `details.steps` | sim | _step[]_ | Lista ordenada de etapas (mínimo 1). |
-| `backend.imageid` | sim | string | Identificador do ambiente a provisionar. |
+| `backend.imageid` | não | string | Identificador do ambiente. Não é usado pela extensão: o ambiente é definido pelo repositório do tutorial. |
 | `report` | não | _report_ | Envio do desempenho do aluno ao professor. |
 
 **_textBlock_**: `text` (markdown, obrigatório) e `background` (script shell

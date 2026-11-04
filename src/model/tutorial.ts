@@ -28,7 +28,7 @@ export interface TutorialDetails {
 }
 
 export interface BackendConfig {
-  imageid: string;
+  imageid?: string;
 }
 
 export interface ReportConfig {
@@ -40,6 +40,6 @@ export interface TutorialDefinition {
   title: string;
   description: string;
   details: TutorialDetails;
-  backend: BackendConfig;
+  backend?: BackendConfig;
   report?: ReportConfig;
 }

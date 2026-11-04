@@ -3,7 +3,7 @@
   "title": "Tutoriais Interativos de Microsserviços - Definição de Tutorial",
   "description": "Schema do arquivo de configuração (index.json) de um tutorial interativo da plataforma",
   "type": "object",
-  "required": ["title", "description", "details", "backend"],
+  "required": ["title", "description", "details"],
   "additionalProperties": false,
   "properties": {
     "title": {
@@ -39,7 +39,6 @@
     "backend": {
       "type": "object",
       "description": "Backend environment configuration",
-      "required": ["imageid"],
       "additionalProperties": false,
       "properties": {
         "imageid": {
@@ -50,7 +49,7 @@
     },
     "report": {
       "type": "object",
-      "description": "Optional performance report: at the end of the tutorial the student may send name, enrollment number and score to the instructor's remote endpoint (e.g. a Google Apps Script Web App bound to a spreadsheet)",
+      "description": "Optional performance report: at the end of the tutorial the student may send name and score to the instructor's remote endpoint (e.g. a Google Apps Script Web App bound to a spreadsheet)",
       "required": ["endpoint"],
       "additionalProperties": false,
       "properties": {
